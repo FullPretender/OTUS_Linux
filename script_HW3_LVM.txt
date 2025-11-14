@@ -1,0 +1,729 @@
+Script started on 2025-11-13 17:16:44+03:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="120" LINES="30"]
+alex@AlexHP: ~alex@AlexHP:~$ ssh user@192.168.56.102
+
+user@192.168.56.102's password: 
+Welcome to Ubuntu 25.10 (GNU/Linux 6.17.0-6-generic x86_64)
+
+ * Documentation:  https://docs.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Thu Nov 13 14:16:55 UTC 2025
+
+  System load:  0.01               Processes:               135
+  Usage of /:   22.8% of 13.67GB   Users logged in:         0
+  Memory usage: 3%                 IPv4 address for enp0s8: 192.168.56.102
+  Swap usage:   0%
+
+
+3 обновления может быть применено немедленно.
+Чтобы просмотреть дополнительные обновления выполните: apt list --upgradable
+
+
+Last login: Thu Nov 13 14:12:38 2025 from 192.168.56.1
+
+user@ubuntuserver: ~user@ubuntuserver:~$ sudo -i
+
+[sudo: authenticate] Password: 
+root@ubuntuserver: ~root@ubuntuserver:~# lsblk
+
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0   30G  0 disk 
+├─sda1                      8:1    0    1M  0 part 
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0   28G  0 part 
+  └─ubuntu--vg-ubuntu--lv 252:0    0   14G  0 lvm  /
+sdb                         8:16   0   20G  0 disk 
+sdc                         8:32   0   10G  0 disk 
+sdd                         8:48   0   10G  0 disk 
+sr0                        11:0    1 1024M  0 rom  
+root@ubuntuserver: ~root@ubuntuserver:~# pvcreate /DEV/SDBdev/sdb /dev/
+
+  Physical volume "/dev/sdb" successfully created.
+root@ubuntuserver: ~root@ubuntuserver:~# vgcreate vg_root /dev/sdb 
+
+  Volume group "vg_root" successfully created
+root@ubuntuserver: ~root@ubuntuserver:~# lvcreate -n lv_root -l 1+100%FREE /dev/vg_root
+
+  Logical volume "lv_root" created.
+root@ubuntuserver: ~root@ubuntuserver:~# pvs
+
+  PV         VG        Fmt  Attr PSize   PFree 
+  /dev/sda3  ubuntu-vg lvm2 a--  <28,00g 14,00g
+  /dev/sdb   vg_root   lvm2 a--  <20,00g     0 
+root@ubuntuserver: ~root@ubuntuserver:~# vgs
+
+  VG        #PV #LV #SN Attr   VSize   VFree 
+  ubuntu-vg   1   1   0 wz--n- <28,00g 14,00g
+  vg_root     1   1   0 wz--n- <20,00g     0 
+root@ubuntuserver: ~root@ubuntuserver:~# lvs
+
+  LV        VG        Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  ubuntu-lv ubuntu-vg -wi-ao---- <14,00g                                                    
+  lv_root   vg_root   -wi-a----- <20,00g                                                    
+root@ubuntuserver: ~root@ubuntuserver:~# vgdisplay 
+ubuntu-vg  vg_root    
+root@ubuntuserver: ~root@ubuntuserver:~# vgdisplay 
+ubuntu-vg  vg_root    
+root@ubuntuserver: ~root@ubuntuserver:~# vgdisplay 
+ubuntu-vg  vg_root    
+root@ubuntuserver: ~root@ubuntuserver:~# vgdisplay vg_root 
+
+  --- Volume group ---
+  VG Name               vg_root
+  System ID             
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  2
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                1
+  Open LV               0
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               <20,00 GiB
+  PE Size               4,00 MiB
+  Total PE              5119
+  Alloc PE / Size       5119 / <20,00 GiB
+  Free  PE / Size       0 / 0   
+  VG UUID               ATQtgx-yNWc-QHiQ-4Fs2-2WiT-NXE9-sKuMkU
+   
+
+root@ubuntuserver: ~root@ubuntuserver:~# vgdisplay vg_root  -v 
+
+  --- Volume group ---
+  VG Name               vg_root
+  System ID             
+  Format                lvm2
+  Metadata Areas        1
+  Metadata Sequence No  2
+  VG Access             read/write
+  VG Status             resizable
+  MAX LV                0
+  Cur LV                1
+  Open LV               0
+  Max PV                0
+  Cur PV                1
+  Act PV                1
+  VG Size               <20,00 GiB
+  PE Size               4,00 MiB
+  Total PE              5119
+  Alloc PE / Size       5119 / <20,00 GiB
+  Free  PE / Size       0 / 0   
+  VG UUID               ATQtgx-yNWc-QHiQ-4Fs2-2WiT-NXE9-sKuMkU
+   
+  --- Logical volume ---
+  LV Path                /dev/vg_root/lv_root
+  LV Name                lv_root
+  VG Name                vg_root
+  LV UUID                HZuD0y-I7A4-M7fz-ozc8-6wEm-oCe5-M3bXde
+  LV Write Access        read/write
+  LV Creation host, time ubuntuserver, 2025-11-13 14:19:01 +0000
+  LV Status              available
+  # open                 0
+  LV Size                <20,00 GiB
+  Current LE             5119
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     16384
+  Block device           252:1
+   
+  --- Physical volumes ---
+  PV Name               /dev/sdb     
+  PV UUID               XkyGZ4-Bzwe-c5Hi-fLfU-yljR-4tXP-DYuigN
+  PV Status             allocatable
+  Total PE / Free PE    5119 / 0
+   
+root@ubuntuserver: ~root@ubuntuserver:~# mkfs.ext4 /dev/vg_root/lv_root 
+
+mke2fs 1.47.2 (1-Jan-2025)
+Creating filesystem with 5241856 4k blocks and 1310720 inodes
+Filesystem UUID: 95013668-b2cf-43b0-b884-2322f108defb
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208, 
+	4096000
+
+Allocating group tables:   0/160       done                            
+Writing inode tables:   0/160       done                            
+Creating journal (32768 blocks): done
+Writing superblocks and filesystem accounting information:   0/160       done
+
+root@ubuntuserver: ~root@ubuntuserver:~# mount /dev/vg_root/lv_root /mnt
+
+root@ubuntuserver: ~root@ubuntuserver:~# rsync -avxHAX / /mnt
+
+root@ubuntuserver: ~root@ubuntuserver:~# for i in /proc/  /sys/ /dev/ /run/ /boot/; do mount --bind $i /mnt&$i; done
+
+root@ubuntuserver: ~root@ubuntuserver:~# chroort ./mnt
+
+root@ubuntuserver: /root@ubuntuserver:/# grub-mkconfig -o /boot/grub/grub.cfg 
+
+Sourcing file `/etc/default/grub'
+Sourcing file `/etc/default/grub.d/kdump-tools.cfg'
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-6.17.0-6-generic
+Found initrd image: /boot/initrd.img-6.17.0-6-generic
+Warning: os-prober will not be executed to detect other bootable partitions.
+Systems on them will not be added to the GRUB boot configuration.
+Check GRUB_DISABLE_OS_PROBER documentation entry.
+Adding boot menu entry for UEFI Firmware Settings ...
+done
+root@ubuntuserver: /root@ubuntuserver:/# ls /mnt
+
+root@ubuntuserver: /root@ubuntuserver:/# ls
+
+bin   cdrom  etc   lib    lost+found  mnt  proc  run   snap  sys  usr
+boot  dev    home  lib64  media       opt  root  sbin  srv   tmp  var
+root@ubuntuserver: /root@ubuntuserver:/# update-
+update-alternatives     update-grub2            update-initramfs        update-pciids           
+update-ca-certificates  update-grub-gfxpayload  update-locale           update-rc.d             
+update-catalog          update-ieee-data        update-mime-database    update-shells           
+update-grub             update-info-dir         update-passwd           update-xmlcatalog       
+root@ubuntuserver: /root@ubuntuserver:/# update-initramfs -u
+
+update-initramfs: Generating /boot/initrd.img-6.17.0-6-generic
+root@ubuntuserver: /root@ubuntuserver:/# reboot
+
+Running in chroot, ignoring request.
+
+root@ubuntuserver: /root@ubuntuserver:/# exit
+
+exit
+root@ubuntuserver: ~root@ubuntuserver:~# reboot
+
+root@ubuntuserver: ~root@ubuntuserver:~# Connection to 192.168.56.102 closed by remote host.
+
+Connection to 192.168.56.102 closed.
+
+alex@AlexHP: ~alex@AlexHP:~$ ssh user@192.168.56.102
+
+user@192.168.56.102's password: 
+Welcome to Ubuntu 25.10 (GNU/Linux 6.17.0-6-generic x86_64)
+
+ * Documentation:  https://docs.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Thu Nov 13 14:29:45 UTC 2025
+
+  System load:  0.92               Processes:               138
+  Usage of /:   16.1% of 19.51GB   Users logged in:         0
+  Memory usage: 3%                 IPv4 address for enp0s8: 192.168.56.102
+  Swap usage:   0%
+
+
+3 обновления может быть применено немедленно.
+Чтобы просмотреть дополнительные обновления выполните: apt list --upgradable
+
+
+Last login: Thu Nov 13 14:16:56 2025 from 192.168.56.1
+
+user@ubuntuserver: ~user@ubuntuserver:~$ exitexitsudo -i
+
+[sudo: authenticate] Password: 
+root@ubuntuserver: ~root@ubuntuserver:~# lsblk
+
+NAME                      MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                         8:0    0   30G  0 disk 
+├─sda1                      8:1    0    1M  0 part 
+├─sda2                      8:2    0    2G  0 part /boot
+└─sda3                      8:3    0   28G  0 part 
+  └─ubuntu--vg-ubuntu--lv 252:1    0   14G  0 lvm  
+sdb                         8:16   0   20G  0 disk 
+└─vg_root-lv_root         252:0    0   20G  0 lvm  /
+sdc                         8:32   0   10G  0 disk 
+sdd                         8:48   0   10G  0 disk 
+sr0                        11:0    1 1024M  0 rom  
+root@ubuntuserver: ~root@ubuntuserver:~# lvmremolvm
+lvm          lvmconfig    lvmdiskscan  lvmdump      lvmpolld     lvmsadc      lvmsar       
+root@ubuntuserver: ~root@ubuntuserver:~# lvm
+lvm          lvmconfig    lvmdiskscan  lvmdump      lvmpolld     lvmsadc      lvmsar       
+root@ubuntuserver: ~root@ubuntuserver:~# lvmre
+lvreduce  lvremove  lvrename  lvresize  
+root@ubuntuserver: ~root@ubuntuserver:~# lvremove /dev/ubuntu-vg/ubuntu-lv 
+
+Do you really want to remove and DISCARD active logical volume ubuntu-vg/ubuntu-lv? [y/n]: y
+  Logical volume "ubuntu-lv" successfully removed.
+root@ubuntuserver: ~root@ubuntuserver:~# lvcreate -n ubuntu_lv =-l 8G /dev/ubuntu_vg-vg
+
+  Invalid argument for --extents: 8G
+  Error during parsing of command line.
+root@ubuntuserver: ~root@ubuntuserver:~# lvcreate -n ubuntu_lv -l 8G /dev/ubuntu-vg
+
+WARNING: ext4 signature detected on /dev/ubuntu-vg/ubuntu_lv at offset 1080. Wipe it? [y/n]: y
+  Wiping ext4 signature on /dev/ubuntu-vg/ubuntu_lv.
+  Logical volume "ubuntu_lv" created.
+root@ubuntuserver: ~root@ubuntuserver:~# lsblk
+
+NAME                     MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                        8:0    0   30G  0 disk 
+├─sda1                     8:1    0    1M  0 part 
+├─sda2                     8:2    0    2G  0 part /boot
+└─sda3                     8:3    0   28G  0 part 
+  └─ubuntu--vg-ubuntu_lv 252:1    0    8G  0 lvm  
+sdb                        8:16   0   20G  0 disk 
+└─vg_root-lv_root        252:0    0   20G  0 lvm  /
+sdc                        8:32   0   10G  0 disk 
+sdd                        8:48   0   10G  0 disk 
+sr0                       11:0    1 1024M  0 rom  
+root@ubuntuserver: ~root@ubuntuserver:~# lvmdiskscan 
+
+  /dev/sdb  [      20,00 GiB] LVM physical volume
+  /dev/sda2 [       2,00 GiB] 
+  /dev/sda3 [     <28,00 GiB] LVM physical volume
+  /dev/sdc  [      10,00 GiB] 
+  /dev/sdd  [      10,00 GiB] 
+  2 disks
+  1 partition
+  1 LVM physical volume whole disk
+  1 LVM physical volume
+root@ubuntuserver: ~root@ubuntuserver:~# lvm
+lvm          lvmconfig    lvmdiskscan  lvmdump      lvmpolld     lvmsadc      lvmsar       
+root@ubuntuserver: ~root@ubuntuserver:~# lvm
+lvchange     lvcreate     lvextend     lvmconfig    lvmdump      lvmsadc      lvreduce     lvrename     lvs
+lvconvert    lvdisplay    lvm          lvmdiskscan  lvmpolld     lvmsar       lvremove     lvresize     lvscan
+root@ubuntuserver: ~root@ubuntuserver:~# lvdisplay /dev/
+/dev/ubuntu-vg/ubuntu_lv  /dev/vg_root/lv_root      
+root@ubuntuserver: ~root@ubuntuserver:~# lvdisplay /dev/
+/dev/ubuntu-vg/ubuntu_lv  /dev/vg_root/lv_root      
+root@ubuntuserver: ~root@ubuntuserver:~# lvdisplay /dev/
+/dev/ubuntu-vg/ubuntu_lv  /dev/vg_root/lv_root      
+root@ubuntuserver: ~root@ubuntuserver:~# lvdisplay /dev/ubuntu-vg/ubuntu_lv /dev/
+
+  --- Logical volume ---
+  LV Path                /dev/ubuntu-vg/ubuntu_lv
+  LV Name                ubuntu_lv
+  VG Name                ubuntu-vg
+  LV UUID                8nbj3U-gJ1d-vPkM-Lugh-n0zv-DElH-eM49Lx
+  LV Write Access        read/write
+  LV Creation host, time ubuntuserver, 2025-11-13 14:32:13 +0000
+  LV Status              available
+  # open                 0
+  LV Size                8,00 GiB
+  Current LE             2048
+  Segments               1
+  Allocation             inherit
+  Read ahead sectors     auto
+  - currently set to     16384
+  Block device           252:1
+   
+root@ubuntuserver: ~root@ubuntuserver:~# mkfs.ext4 /dev/ubuntu-vg/lubuntu_lv .
+
+mke2fs 1.47.2 (1-Jan-2025)
+Creating filesystem with 2097152 4k blocks and 524288 inodes
+Filesystem UUID: 700ced6e-5585-481a-9d7c-c6f708c72794
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632
+
+Allocating group tables:  0/64     done                            
+Writing inode tables:  0/64     done                            
+Creating journal (16384 blocks): done
+Writing superblocks and filesystem accounting information:  0/64     done
+
+root@ubuntuserver: ~root@ubuntuserver:~# mounmkfs.ext4 /dev/ubuntu-vg/ubuntu_lv mount/mnt
+
+[8Proot@ubuntuserver: ~root@ubuntuserver:~# L
+sblkvmdiskscan display /dev/ubuntu-vg/ubuntu_lv
+mkfs.ext4 /dev/ubuntu-vg/ubuntu_lv 
+ount /dev/ubuntu-vg/ubuntu_lv /mnt
+rsync -avxxHAX / /mnt
+
+root@ubuntuserver: ~root@ubuntuserver:~# for i in /proc/ /sys/ /dev/ /run/ /boot/;
+for i in /proc/ /sys/ /dev/ /run/ /boot/; do mount --binfd $i /mnt$i; done
+
+root@ubuntuserver: ~root@ubuntuserver:~# chroot /mnt
+
+root@ubuntuserver: /root@ubuntuserver:/# grub-mkconfig -o /boot/grub/grub.cfg 
+
+Sourcing file `/etc/default/grub'
+Sourcing file `/etc/default/grub.d/kdump-tools.cfg'
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-6.17.0-6-generic
+Found initrd image: /boot/initrd.img-6.17.0-6-generic
+Warning: os-prober will not be executed to detect other bootable partitions.
+Systems on them will not be added to the GRUB boot configuration.
+Check GRUB_DISABLE_OS_PROBER documentation entry.
+Adding boot menu entry for UEFI Firmware Settings ...
+done
+root@ubuntuserver: /root@ubuntuserver:/# update-initramfs -u
+
+update-initramfs: Generating /boot/initrd.img-6.17.0-6-generic
+W: Couldn't identify type of root file system '/dev/disk/by-id/dm-uuid-LVM-kOCfZOM8YtaNnVbZwElTdOj3W5DCVBAUzYbt8UMQw28dnUHYsIeie3y3lNPANdeS' for fsck hook
+root@ubuntuserver: /root@ubuntuserver:/# pvcreate /dev/sdc /dev/sdd 
+
+  Physical volume "/dev/sdc" successfully created.
+  Physical volume "/dev/sdd" successfully created.
+root@ubuntuserver: /root@ubuntuserver:/# vgcreate vg_var /dev/sdc /dev/sdd
+
+  Volume group "vg_var" successfully created
+root@ubuntuserver: /root@ubuntuserver:/# 7lvcrelvreatevcreate -L 950M -m1 -n lv_var vg_var
+
+  Rounding up size to full physical extent 952,00 MiB
+  Logical volume "lv_var" created.
+root@ubuntuserver: /root@ubuntuserver:/# mkfs.ext4 /dev/vg_var/lv_var 
+
+mke2fs 1.47.2 (1-Jan-2025)
+Creating filesystem with 243712 4k blocks and 60928 inodes
+Filesystem UUID: 1c45f1ea-9b3a-4e35-a92a-15f49a1eb661
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376
+
+Allocating group tables: 0/8   done                            
+Writing inode tables: 0/8   done                            
+Creating journal (4096 blocks): done
+Writing superblocks and filesystem accounting information: 0/8   done
+
+root@ubuntuserver: /root@ubuntuserver:/# mount /dev/vg_var/lv_var  / /mnt
+
+root@ubuntuserver: /root@ubuntuserver:/# cp -aR /var/* /mnt/
+
+root@ubuntuserver: /root@ubuntuserver:/# mkduir /tmp/mp/oldvatr && mv /var/* /tmp/oldvar
+
+root@ubuntuserver: /root@ubuntuserver:/# unmmount /mnt/
+
+root@ubuntuserver: /root@ubuntuserver:/# mount /dev/vg_var/lv_var /var
+
+root@ubuntuserver: /root@ubuntuserver:/# blkid | grep var:
+
+/dev/mapper/vg_var-lv_[01;31mvar:[m UUID="1c45f1ea-9b3a-4e35-a92a-15f49a1eb661" BLOCK_SIZE="4096" TYPE="ext4"
+root@ubuntuserver: /root@ubuntuserver:/# echo "`blkid | grep var: | awk '{print $2}'` \
+
+ /var ext4 defaults 0 0" >> /etc/fstab
+
+[A[Aecho "`blkid | grep var: | awk '{print $2}'` \
+
+ /var ext4 defaults 0 0" >> /etc/fstab
+[A/var ext4 defaults 0 0" >> /etc/fstab
+
+
+
+[A[A
+
+
+root@ubuntuserver: /root@ubuntuserver:/# cat /etc/fdstab 
+
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+# / was on /dev/ubuntu-vg/ubuntu-lv during curtin installation
+/dev/disk/by-id/dm-uuid-LVM-kOCfZOM8YtaNnVbZwElTdOj3W5DCVBAUzYbt8UMQw28dnUHYsIeie3y3lNPANdeS / ext4 defaults 0 1
+# /boot was on /dev/sda2 during curtin installation
+/dev/disk/by-uuid/2bdb6c47-50b7-47b9-90d1-8a09134ed405 /boot ext4 defaults 0 1
+UUID="1c45f1ea-9b3a-4e35-a92a-15f49a1eb661" /var ext4 defaults 0 0
+root@ubuntuserver: /root@ubuntuserver:/# reboot
+
+Running in chroot, ignoring request.
+
+root@ubuntuserver: /root@ubuntuserver:/# exit
+
+exit
+root@ubuntuserver: ~root@ubuntuserver:~# reboot
+
+root@ubuntuserver: ~root@ubuntuserver:~# Connection to 192.168.56.102 closed by remote host.
+
+Connection to 192.168.56.102 closed.
+
+alex@AlexHP: ~alex@AlexHP:~$ ssh user@192.168.56.102
+
+
+user@192.168.56.102's password: 
+Welcome to Ubuntu 25.10 (GNU/Linux 6.17.0-6-generic x86_64)
+
+ * Documentation:  https://docs.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Thu Nov 13 14:42:38 UTC 2025
+
+  System load:  0.64              Processes:               165
+  Usage of /:   40.4% of 7.78GB   Users logged in:         0
+  Memory usage: 4%                IPv4 address for enp0s8: 192.168.56.102
+  Swap usage:   0%
+
+
+3 обновления может быть применено немедленно.
+Чтобы просмотреть дополнительные обновления выполните: apt list --upgradable
+
+
+Last login: Thu Nov 13 14:29:46 2025 from 192.168.56.1
+
+user@ubuntuserver: ~user@ubuntuserver:~$ lsblk
+
+NAME                     MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                        8:0    0   30G  0 disk 
+├─sda1                     8:1    0    1M  0 part 
+├─sda2                     8:2    0    2G  0 part /boot
+└─sda3                     8:3    0   28G  0 part 
+  └─ubuntu--vg-ubuntu_lv 252:6    0    8G  0 lvm  /
+sdb                        8:16   0   20G  0 disk 
+└─vg_root-lv_root        252:0    0   20G  0 lvm  
+sdc                        8:32   0   10G  0 disk 
+├─vg_var-lv_var_rmeta_0  252:1    0    4M  0 lvm  
+│ └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_0 252:2    0  952M  0 lvm  
+  └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+sdd                        8:48   0   10G  0 disk 
+├─vg_var-lv_var_rmeta_1  252:3    0    4M  0 lvm  
+│ └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_1 252:4    0  952M  0 lvm  
+  └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+sr0                       11:0    1 1024M  0 rom  
+user@ubuntuserver: ~user@ubuntuserver:~$ sudo shoutdown -h mnow
+
+[sudo: authenticate] Password: 
+user@ubuntuserver: ~user@ubuntuserver:~$ Connection to 192.168.56.102 closed by remote host.
+
+Connection to 192.168.56.102 closed.
+
+alex@AlexHP: ~alex@AlexHP:~$ exit
+
+exit
+
+Script done on 2025-11-13 17:43:40+03:00 [COMMAND_EXIT_CODE="255"]
+
+Script started on 2025-11-14 10:58:00+03:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="120" LINES="30"]
+alex@AlexHP: ~alex@AlexHP:~$ script homework.txt
+exitssh user@192.168.56.102
+
+
+user@192.168.56.102's password: 
+Welcome to Ubuntu 25.10 (GNU/Linux 6.17.0-6-generic x86_64)
+
+ * Documentation:  https://docs.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Fri Nov 14 07:58:03 UTC 2025
+
+  System load:  0.22              Processes:               143
+  Usage of /:   40.4% of 7.78GB   Users logged in:         0
+  Memory usage: 3%                IPv4 address for enp0s8: 192.168.56.102
+  Swap usage:   0%
+
+
+3 обновления может быть применено немедленно.
+Чтобы просмотреть дополнительные обновления выполните: apt list --upgradable
+
+
+Last login: Thu Nov 13 16:49:36 2025 from 192.168.56.1
+
+
+user@ubuntuserver: ~user@ubuntuserver:~$ sudo -i
+
+[sudo: authenticate] Password: 
+root@ubuntuserver: ~root@ubuntuserver:~# lsbklk
+
+NAME                     MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                        8:0    0   30G  0 disk 
+├─sda1                     8:1    0    1M  0 part 
+├─sda2                     8:2    0    2G  0 part /boot
+└─sda3                     8:3    0   28G  0 part 
+  └─ubuntu--vg-ubuntu_lv 252:6    0    8G  0 lvm  /
+sdb                        8:16   0   20G  0 disk 
+└─vg_root-lv_root        252:0    0   20G  0 lvm  
+sdc                        8:32   0   10G  0 disk 
+├─vg_var-lv_var_rmeta_0  252:1    0    4M  0 lvm  
+│ └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_0 252:2    0  952M  0 lvm  
+  └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+sdd                        8:48   0   10G  0 disk 
+├─vg_var-lv_var_rmeta_1  252:3    0    4M  0 lvm  
+│ └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_1 252:4    0  952M  0 lvm  
+  └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+sr0                       11:0    1 1024M  0 rom  
+root@ubuntuserver: ~root@ubuntuserver:~# vlsgs
+
+  VG        #PV #LV #SN Attr   VSize   VFree  
+  ubuntu-vg   1   1   0 wz--n- <28,00g <20,00g
+  vg_root     1   1   0 wz--n- <20,00g      0 
+  vg_var      2   1   0 wz--n-  19,99g  18,12g
+root@ubuntuserver: ~root@ubuntuserver:~# lvs
+
+  LV        VG        Attr       LSize   Pool Origin Data%  Meta%  Move Log Cpy%Sync Convert
+  ubuntu_lv ubuntu-vg -wi-ao----   8,00g                                                    
+  lv_root   vg_root   -wi-a----- <20,00g                                                    
+  lv_var    vg_var    rwi-aor--- 952,00m                                    100,00          
+root@ubuntuserver: ~root@ubuntuserver:~# дмкlvremove /dev/vg_root/lv_root 
+
+Do you really want to remove and DISCARD active logical volume vg_root/lv_root? [y/n]: y
+  Logical volume "lv_root" successfully removed.
+root@ubuntuserver: ~root@ubuntuserver:~# vgeremove /dev/vg_fro
+vgreduce  vgremove  vgrename  
+root@ubuntuserver: ~root@ubuntuserver:~# vgre
+vgreduce  vgremove  vgrename  
+root@ubuntuserver: ~root@ubuntuserver:~# vgremove 
+ubuntu-vg  vg_root    vg_var     
+root@ubuntuserver: ~root@ubuntuserver:~# vgremove /vg)__root 
+
+  Volume group "vg_root" successfully removed
+root@ubuntuserver: ~root@ubuntuserver:~# pvremove /dev/sdb
+
+  Labels on physical volume "/dev/sdb" successfully wiped.
+root@ubuntuserver: ~root@ubuntuserver:~# lsblk
+
+NAME                     MAJ:MIN RM  SIZE RO TYPE MOUNTPOINTS
+sda                        8:0    0   30G  0 disk 
+├─sda1                     8:1    0    1M  0 part 
+├─sda2                     8:2    0    2G  0 part /boot
+└─sda3                     8:3    0   28G  0 part 
+  └─ubuntu--vg-ubuntu_lv 252:6    0    8G  0 lvm  /
+sdb                        8:16   0   20G  0 disk 
+sdc                        8:32   0   10G  0 disk 
+├─vg_var-lv_var_rmeta_0  252:1    0    4M  0 lvm  
+│ └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_0 252:2    0  952M  0 lvm  
+  └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+sdd                        8:48   0   10G  0 disk 
+├─vg_var-lv_var_rmeta_1  252:3    0    4M  0 lvm  
+│ └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+└─vg_var-lv_var_rimage_1 252:4    0  952M  0 lvm  
+  └─vg_var-lv_var        252:5    0  952M  0 lvm  /var
+sr0                       11:0    1 1024M  0 rom  
+root@ubuntuserver: ~root@ubuntuserver:~# lvcreate -M lOGvOLN lOGvOL_ Ln LogVol_JHome -L 2G /dev/ubuntiu_vg
+
+  Volume group "ubuntu_vg" not found
+  Cannot process volume group ubuntu_vg
+root@ubuntuserver: ~root@ubuntuserver:~# mkfs.ext4 /dev/ubuntu-vg/Lubuntu_lv .lvcreate -n LogVol_Home -L 2G /dev/ubuntu_vg-vg
+
+  Logical volume "LogVol_Home" created.
+root@ubuntuserver: ~root@ubuntuserver:~# mkfs.ext334 /dev/ubuntu-vg/LogVol_Home 
+
+mke2fs 1.47.2 (1-Jan-2025)
+Creating filesystem with 524288 4k blocks and 131072 inodes
+Filesystem UUID: 614311a6-f25a-4e15-a4cf-2afd221efc16
+Superblock backups stored on blocks: 
+	32768, 98304, 163840, 229376, 294912
+
+Allocating group tables:  0/16     done                            
+Writing inode tables:  0/16     done                            
+Creating journal (16384 blocks): done
+Writing superblocks and filesystem accounting information:  0/16     done
+
+root@ubuntuserver: ~root@ubuntuserver:~# mount /dev/ubuntu-vg/LogVol_Home ./mnt
+
+root@ubuntuserver: ~root@ubuntuserver:~# cp -RarR /nhome/:* * /mnt
+
+root@ubuntuserver: ~root@ubuntuserver:~# rm -frrf /home/*
+
+root@ubuntuserver: ~root@ubuntuserver:~# umount /mnt 
+
+root@ubuntuserver: ~root@ubuntuserver:~# ,ountmount /dev/ubuntu-vg/LogVol_Home  /home/
+
+root@ubuntuserver: ~root@ubuntuserver:~# echo "`blkid | grep Home | awk '{print $2}'` \
+
+ /home xfs defaults 0 0" >> /etc/fstab
+
+[A[Aecho "`blkid | grep Home | awk '{print $2}'` \
+
+ /home xfs defaults 0 0" >> /etc/fstab
+[A/home xfs defaults 0 0" >> /etc/fstab
+
+
+
+[A[Aext4
+
+
+root@ubuntuserver: ~root@ubuntuserver:~# cat /etc/fstab 
+
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+# / was on /dev/ubuntu-vg/ubuntu-lv during curtin installation
+/dev/disk/by-id/dm-uuid-LVM-kOCfZOM8YtaNnVbZwElTdOj3W5DCVBAUzYbt8UMQw28dnUHYsIeie3y3lNPANdeS / ext4 defaults 0 1
+# /boot was on /dev/sda2 during curtin installation
+/dev/disk/by-uuid/2bdb6c47-50b7-47b9-90d1-8a09134ed405 /boot ext4 defaults 0 1
+UUID="1c45f1ea-9b3a-4e35-a92a-15f49a1eb661" /var ext4 defaults 0 0
+UUID="614311a6-f25a-4e15-a4cf-2afd221efc16" /home ext4 defaults 0 0
+root@ubuntuserver: ~root@ubuntuserver:~# ls /home/
+
+lost+found  user
+root@ubuntuserver: ~root@ubuntuserver:~# ls /home/user/.
+
+root@ubuntuserver: ~root@ubuntuserver:~# ls /home/user/.
+.bash_history  .bash_logout   .bashrc        .cache/        .profile       .ssh/          
+root@ubuntuserver: ~root@ubuntuserver:~# ls /home/user/.
+.bash_history  .bash_logout   .bashrc        .cache/        .profile       .ssh/          
+root@ubuntuserver: ~root@ubuntuserver:~# ls /home/user/.touch /home/firle[{}1}.}.}2}}1}0}
+
+root@ubuntuserver: ~root@ubuntuserver:~# lvcreals home
+
+ls: cannot access 'home': No such file or directory
+root@ubuntuserver: ~root@ubuntuserver:~# ls home/home
+
+file1   file2  file4  file6  file8  lost+found
+file10  file3  file5  file7  file9  user
+root@ubuntuserver: ~root@ubuntuserver:~# lvreacreate -L 100mMB -s-s -n  Homehome_snap /dev/ubuntu-vg /LogVol_Home
+
+  Logical volume "home_snap" created.
+root@ubuntuserver: ~root@ubuntuserver:~# llvs
+
+  LV          VG        Attr       LSize   Pool Origin      Data%  Meta%  Move Log Cpy%Sync Convert
+  LogVol_Home ubuntu-vg owi-aos---   2,00g                                                         
+  home_snap   ubuntu-vg swi-a-s--- 100,00m      LogVol_Home 0,01                                   
+  ubuntu_lv   ubuntu-vg -wi-ao----   8,00g                                                         
+  lv_var      vg_var    rwi-aor--- 952,00m                                         100,00          
+root@ubuntuserver: ~root@ubuntuserver:~# rm -f /home /file {5..}1}0}
+
+root@ubuntuserver: ~root@ubuntuserver:~# ls /home
+
+file1  file2  file3  file4  lost+found  user
+root@ubuntuserver: ~root@ubuntuserver:~# umount /home 
+
+root@ubuntuserver: ~root@ubuntuserver:~# lvconvert --merge /dev/u
+ubuntu-vg/   udmabuf      uhid         uinput       urandom      userfaultfd  userio       
+root@ubuntuserver: ~root@ubuntuserver:~# lvconvert --merge /dev/ubuntu-vg/LogVol_Home home_snap 
+
+  Merging of volume ubuntu-vg/home_snap started.
+  ubuntu-vg/LogVol_Home: Merged: 100,00%
+root@ubuntuserver: ~root@ubuntuserver:~# mount /dev/ubuntu-vg/LogVol_Home /home/
+
+mount: (hint) your fstab has been modified, but systemd still uses
+       the old version; use 'systemctl daemon-reload' to reload.
+root@ubuntuserver: ~root@ubuntuserver:~# ;ls /hommount /dev/ubuntu-vg/LogVol_Home /home/mapper/ubuntu--vg-
+ubuntu--vg-LogVol_Home  ubuntu--vg-ubuntu_lv    
+root@ubuntuserver: ~root@ubuntuserver:~# mount /dev/mapper/ubuntu--vg-LogVol_Home /home/
+
+mount: /home: /dev/mapper/ubuntu--vg-LogVol_Home already mounted on /home.
+       dmesg(1) may have more information after failed mount system call.
+mount: (hint) your fstab has been modified, but systemd still uses
+       the old version; use 'systemctl daemon-reload' to reload.
+root@ubuntuserver: ~root@ubuntuserver:~# systemctl daemon-reload 
+
+root@ubuntuserver: ~root@ubuntuserver:~# systemctl daemon-reload 
+mount /dev/mapper/ubuntu--vg-LogVol_Home /home/
+[8Pubuntu-vg/
+
+mount: /home: /dev/mapper/ubuntu--vg-LogVol_Home already mounted on /home.
+       dmesg(1) may have more information after failed mount system call.
+root@ubuntuserver: ~root@ubuntuserver:~# ls home
+
+ls: cannot access 'home': No such file or directory
+root@ubuntuserver: ~root@ubuntuserver:~# ls home/home
+
+file1   file2  file4  file6  file8  lost+found
+file10  file3  file5  file7  file9  user
+root@ubuntuserver: ~root@ubuntuserver:~# shutdown -h now
+
+root@ubuntuserver: ~root@ubuntuserver:~# Connection to 192.168.56.102 closed by remote host.
+
+
+Connection to 192.168.56.102 closed.
+
+
+alex@AlexHP: ~alex@AlexHP:~$ exit
+
+exit
+
+Script done on 2025-11-14 11:16:53+03:00 [COMMAND_EXIT_CODE="255"]
