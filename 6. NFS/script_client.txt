@@ -1,0 +1,374 @@
+Script started on 2025-11-20 14:27:29+03:00 [TERM="xterm-256color" TTY="/dev/pts/2" COLUMNS="118" LINES="55"]
+;alex@AlexHP: ~alex@AlexHP:~$ ssh user@192.1968.56.4
+
+
+user@192.168.56.4's password: 
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-35-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+Expanded Security Maintenance for Applications is not enabled.
+
+0 updates can be applied immediately.
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+Last login: Thu Nov 20 12:26:09 2025 from 192.168.56.1
+
+;user@user-VirtualBox: ~user@user-VirtualBox:~$ sudio-i
+
+sudo-i: command not found
+;user@user-VirtualBox: ~user@user-VirtualBox:~$ sudo-i -i
+
+[sudo] password for user: 
+;root@user-VirtualBox: ~root@user-VirtualBox:~# hiost
+host         hostid       hostname     hostnamectl  
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# hostname  nfsc
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# hostname nfsce
+
+nfsc
+;root@user-VirtualBox: ~root@user-VirtualBox:~# host
+host         hostid       hostname     hostnamectl  
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# host 
+::1              ff02::1          ip6-allrouters   ip6-loopback     user-VirtualBox  
+fe00::0          ff02::2          ip6-localhost    ip6-mcastprefix  
+ff00::0          ip6-allnodes     ip6-localnet     localhost        
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# host [H[2J]0;root@user-VirtualBox: ~root@user-VirtualBox:~# apt install nfs-common 
+
+
+Reading package lists... 0%
+
+Reading package lists... 100%
+
+Reading package lists... Done
+
+
+Building dependency tree... 0%
+
+Building dependency tree... 0%
+
+Building dependency tree... 50%
+
+Building dependency tree... 50%
+
+Building dependency tree... Done
+
+
+Reading state information... 0% 
+
+Reading state information... 0%
+
+Reading state information... Done
+
+The following additional packages will be installed:
+  keyutils libevent-core-2.1-7t64 rpcbind
+Suggested packages:
+  open-iscsi watchdog
+The following NEW packages will be installed:
+  keyutils libevent-core-2.1-7t64 nfs-common rpcbind
+0 upgraded, 4 newly installed, 0 to remove and 22 not upgraded.
+Need to get 443 kB of archives.
+After this operation, 1,497 kB of additional disk space will be used.
+Do you want to continue? [Y/n] y
+
+0% [Working]
+            
+Get:1 http://nl.archive.ubuntu.com/ubuntu noble/main amd64 libevent-core-2.1-7t64 amd64 2.1.12-stable-9ubuntu2 [91.3 kB]
+
+0% [1 libevent-core-2.1-7t64 2,640 B/91.3 kB 3%]
+                                                
+21% [Working]
+             
+Get:2 http://nl.archive.ubuntu.com/ubuntu noble/main amd64 rpcbind amd64 1.2.6-7ubuntu2 [46.5 kB]
+
+24% [2 rpcbind 12.1 kB/46.5 kB 26%]
+                                   
+35% [Working]
+             
+Get:3 http://nl.archive.ubuntu.com/ubuntu noble/main amd64 keyutils amd64 1.6.3-3build1 [56.8 kB]
+
+37% [3 keyutils 12.1 kB/56.8 kB 21%]
+50% [Connecting to nl.archive.ubuntu.com (213.136.12.213)]
+                                                          
+Get:4 http://nl.archive.ubuntu.com/ubuntu noble-updates/main amd64 nfs-common amd64 1:2.6.4-3ubuntu5.1 [248 kB]
+
+                                                          
+51% [4 nfs-common 3,433 B/248 kB 1%]
+                                    
+100% [Working]
+              
+Fetched 443 kB in 1s (389 kB/s)
+
+7[0;54r8[1ASelecting previously unselected package libevent-core-2.1-7t64:amd64.
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 192143 files and directories currently installed.)
+Preparing to unpack .../libevent-core-2.1-7t64_2.1.12-stable-9ubuntu2_amd64.deb ...
+7[55;0f[42m[30mProgress: [  0%][49m[39m [................................................................................................] 87[55;0f[42m[30mProgress: [  6%][49m[39m [#####...........................................................................................] 8Unpacking libevent-core-2.1-7t64:amd64 (2.1.12-stable-9ubuntu2) ...
+7[55;0f[42m[30mProgress: [ 12%][49m[39m [###########.....................................................................................] 8Selecting previously unselected package rpcbind.
+Preparing to unpack .../rpcbind_1.2.6-7ubuntu2_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 18%][49m[39m [################................................................................................] 8Unpacking rpcbind (1.2.6-7ubuntu2) ...
+7[55;0f[42m[30mProgress: [ 24%][49m[39m [######################..........................................................................] 8Selecting previously unselected package keyutils.
+Preparing to unpack .../keyutils_1.6.3-3build1_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 29%][49m[39m [############################....................................................................] 8Unpacking keyutils (1.6.3-3build1) ...
+7[55;0f[42m[30mProgress: [ 35%][49m[39m [#################################...............................................................] 8Selecting previously unselected package nfs-common.
+Preparing to unpack .../nfs-common_1%3a2.6.4-3ubuntu5.1_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 41%][49m[39m [#######################################.........................................................] 8Unpacking nfs-common (1:2.6.4-3ubuntu5.1) ...
+7[55;0f[42m[30mProgress: [ 47%][49m[39m [#############################################...................................................] 8Setting up rpcbind (1.2.6-7ubuntu2) ...
+7[55;0f[42m[30mProgress: [ 53%][49m[39m [##################################################..............................................] 8Created symlink /etc/systemd/system/multi-user.target.wants/rpcbind.service → /usr/lib/systemd/system/rpcbind.service.
+
+Created symlink /etc/systemd/system/sockets.target.wants/rpcbind.socket → /usr/lib/systemd/system/rpcbind.socket.
+
+7[55;0f[42m[30mProgress: [ 59%][49m[39m [########################################################........................................] 8Setting up keyutils (1.6.3-3build1) ...
+7[55;0f[42m[30mProgress: [ 65%][49m[39m [##############################################################..................................] 87[55;0f[42m[30mProgress: [ 71%][49m[39m [###################################################################.............................] 8Setting up libevent-core-2.1-7t64:amd64 (2.1.12-stable-9ubuntu2) ...
+7[55;0f[42m[30mProgress: [ 76%][49m[39m [#########################################################################.......................] 87[55;0f[42m[30mProgress: [ 82%][49m[39m [###############################################################################.................] 8Setting up nfs-common (1:2.6.4-3ubuntu5.1) ...
+7[55;0f[42m[30mProgress: [ 88%][49m[39m [####################################################################################............] 8
+Creating config file /etc/idmapd.conf with new version
+
+Creating config file /etc/nfs.conf with new version
+info: Selecting UID from range 100 to 999 ...
+
+info: Adding system user `statd' (UID 124) ...
+info: Adding new user `statd' (UID 124) with group `nogroup' ...
+info: Not creating home directory `/var/lib/nfs'.
+Created symlink /etc/systemd/system/multi-user.target.wants/nfs-client.target → /usr/lib/systemd/system/nfs-client.target.
+
+Created symlink /etc/systemd/system/remote-fs.target.wants/nfs-client.target → /usr/lib/systemd/system/nfs-client.target.
+
+auth-rpcgss-module.service is a disabled or a static unit, not starting it.
+nfs-idmapd.service is a disabled or a static unit, not starting it.
+nfs-utils.service is a disabled or a static unit, not starting it.
+proc-fs-nfsd.mount is a disabled or a static unit, not starting it.
+rpc-gssd.service is a disabled or a static unit, not starting it.
+rpc-statd-notify.service is a disabled or a static unit, not starting it.
+rpc-statd.service is a disabled or a static unit, not starting it.
+rpc-svcgssd.service is a disabled or a static unit, not starting it.
+7[55;0f[42m[30mProgress: [ 94%][49m[39m [##########################################################################################......] 8Processing triggers for man-db (2.12.0-4build2) ...
+Processing triggers for libc-bin (2.39-0ubuntu8.6) ...
+
+7[0;55r8[1A[J;root@user-VirtualBox: ~root@user-VirtualBox:~# nf
+nfnl_osf         nfsdist-bpfcc    nfsiostat        nfsstat          
+nfsconf          nfsidmap         nfsslower-bpfcc  nft              
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# nfs
+nfsconf          nfsdist-bpfcc    nfsidmap         nfsiostat        nfsslower-bpfcc  nfsstat
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# nfs -v
+
+Command 'nfs' not found, did you mean:
+  command 'nft' from deb nftables (1.0.9-1)
+  command 'hfs' from deb hfsutils-tcltk (3.2.6-15build2)
+  command 'fs' from deb openafs-client (1.8.10-2.1ubuntu3.4)
+  command 'nns' from deb tcllib (1.21+dfsg-1)
+  command 'nes' from deb fceux (2.6.5+dfsg1-2)
+  command 'nes' from deb mednafen (1.29.0+dfsg-1build1)
+  command 'nes' from deb nestopia (1.52.0-1)
+  command 'nfc' from deb tlp (1.6.1-1ubuntu1)
+  command 'njs' from deb njs (0.7.12-2)
+  command 'ns' from deb ns2 (2.35+dfsg-5)
+  command 'bfs' from deb bfs (3.0.4-1)
+  command 'zfs' from deb zfsutils-linux (2.2.2-0ubuntu9.4)
+  command 'zfs' from deb zfs-fuse (0.7.0-25)
+Try: apt install <deb name>
+;root@user-VirtualBox: ~root@user-VirtualBox:~# [H[2J]0;root@user-VirtualBox: ~root@user-VirtualBox:~# [7mecho "192.168.50.10:/srv/share/ /mnt nfs vers=3,noauto,x-systemd.automount 0 0" >> /etc/fstab[27m
+echo "192.168.50.10:/srv/share/ /mnt nfs vers=3,noauto,x-systemd.automount 0 0" >> /etc/fstab[1P[1@<6.10:/srv/share/ /mnt nfs vers=3,noauto,x-systemd.automount 0 0" >> /etc/fstab [A
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# [1P
+
+[K[A[1P[1@6
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# systemctl daemon-reload 
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# systemctl daemon-reload restart remote-fs.target 
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# mount | grep mnt
+
+nsfs on /run/snapd/ns/snapd-desktop-integration.[01;31m[Kmnt[m[K type nsfs (rw)
+nsfs on /run/snapd/ns/firmware-updater.[01;31m[Kmnt[m[K type nsfs (rw)
+systemd-1 on /[01;31m[Kmnt[m[K type autofs (rw,relatime,fd=87,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=24062)
+;root@user-VirtualBox: ~root@user-VirtualBox:~# mount -a
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# cat /etc/fastab 
+.bash_history  .bashrc        .cache/        .profile       snap/          .ssh/          .wget-hsts
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# cat /etc/fstab 
+
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+# / was on /dev/sda2 during curtin installation
+/dev/disk/by-uuid/e94769e5-4792-4228-8425-45f20b88f259 / ext4 defaults 0 1
+/swap.img	none	swap	sw	0	0
+192.168.56.10:/srv/share/ /mnt nfs vers=3,noauto,x-systemd.automount 0 0
+;root@user-VirtualBox: ~root@user-VirtualBox:~# \ping 192.168.56.10
+
+PING 192.168.56.10 (192.168.56.10) 56(84) bytes of data.
+64 bytes from 192.168.56.10: icmp_seq=1 ttl=64 time=0.928 ms
+64 bytes from 192.168.56.10: icmp_seq=2 ttl=64 time=0.642 ms
+^X^C
+--- 192.168.56.10 ping statistics ---
+3 packets transmitted, 2 received, 33.3333% packet loss, time 2079ms
+rtt min/avg/max/mdev = 0.642/0.785/0.928/0.143 ms
+;root@user-VirtualBox: ~root@user-VirtualBox:~# ping 192.168.56.10[3Pcat /etc/fstab [7Pmount -a
+
+sysfs on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)
+proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
+udev on /dev type devtmpfs (rw,nosuid,relatime,size=1963348k,nr_inodes=490837,mode=755,inode64)
+devpts on /dev/pts type devpts (rw,nosuid,noexec,relatime,gid=5,mode=620,ptmxmode=000)
+tmpfs on /run type tmpfs (rw,nosuid,nodev,noexec,relatime,size=400988k,mode=755,inode64)
+/dev/sda2 on / type ext4 (rw,relatime)
+securityfs on /sys/kernel/security type securityfs (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev,inode64)
+tmpfs on /run/lock type tmpfs (rw,nosuid,nodev,noexec,relatime,size=5120k,inode64)
+cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,nsdelegate,memory_recursiveprot)
+pstore on /sys/fs/pstore type pstore (rw,nosuid,nodev,noexec,relatime)
+bpf on /sys/fs/bpf type bpf (rw,nosuid,nodev,noexec,relatime,mode=700)
+systemd-1 on /proc/sys/fs/binfmt_misc type autofs (rw,relatime,fd=32,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=3860)
+hugetlbfs on /dev/hugepages type hugetlbfs (rw,nosuid,nodev,relatime,pagesize=2M)
+mqueue on /dev/mqueue type mqueue (rw,nosuid,nodev,noexec,relatime)
+debugfs on /sys/kernel/debug type debugfs (rw,nosuid,nodev,noexec,relatime)
+tracefs on /sys/kernel/tracing type tracefs (rw,nosuid,nodev,noexec,relatime)
+fusectl on /sys/fs/fuse/connections type fusectl (rw,nosuid,nodev,noexec,relatime)
+configfs on /sys/kernel/config type configfs (rw,nosuid,nodev,noexec,relatime)
+/var/lib/snapd/snaps/bare_5.snap on /snap/bare/5 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/core22_1748.snap on /snap/core22/1748 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/firefox_5751.snap on /snap/firefox/5751 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/firmware-updater_167.snap on /snap/firmware-updater/167 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/gnome-42-2204_202.snap on /snap/gnome-42-2204/202 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/gtk-common-themes_1535.snap on /snap/gtk-common-themes/1535 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/snap-store_1248.snap on /snap/snap-store/1248 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/snapd_23545.snap on /snap/snapd/23545 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/snapd-desktop-integration_253.snap on /snap/snapd-desktop-integration/253 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+binfmt_misc on /proc/sys/fs/binfmt_misc type binfmt_misc (rw,nosuid,nodev,noexec,relatime)
+tmpfs on /run/user/1000 type tmpfs (rw,nosuid,nodev,relatime,size=400984k,nr_inodes=100246,mode=700,uid=1000,gid=1000,inode64)
+portal on /run/user/1000/doc type fuse.portal (rw,nosuid,nodev,relatime,user_id=1000,group_id=1000)
+tmpfs on /run/snapd/ns type tmpfs (rw,nosuid,nodev,noexec,relatime,size=400988k,mode=755,inode64)
+nsfs on /run/snapd/ns/snapd-desktop-integration.mnt type nsfs (rw)
+gvfsd-fuse on /run/user/1000/gvfs type fuse.gvfsd-fuse (rw,nosuid,nodev,relatime,user_id=1000,group_id=1000)
+/var/lib/snapd/snaps/snapd_25577.snap on /snap/snapd/25577 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/snapd-desktop-integration_315.snap on /snap/snapd-desktop-integration/315 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+/var/lib/snapd/snaps/firmware-updater_210.snap on /snap/firmware-updater/210 type squashfs (ro,nodev,relatime,errors=continue,threads=single,x-gdu.hide,x-gvfs-hide)
+nsfs on /run/snapd/ns/firmware-updater.mnt type nsfs (rw)
+sunrpc on /run/rpc_pipefs type rpc_pipefs (rw,relatime)
+systemd-1 on /mnt type autofs (rw,relatime,fd=87,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=24062)
+;root@user-VirtualBox: ~root@user-VirtualBox:~# mount |grep [1@ share
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# lvs /mnt/upload/
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# ls /mnt/upload/hello.txt 
+
+/mnt/upload/hello.txt
+;root@user-VirtualBox: ~root@user-VirtualBox:~# ls /mnt/upload/hello.txt Hi!/.txt[1P /mnt/upload/Hi.txt[1P /mnt/upload/Hi.txtt /mnt/upload/Hi.txto /mnt/upload/Hi.txtu /mnt/upload/Hi.txtc /mnt/upload/Hi.txth /mnt/upload/Hi.txt
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# reboor
+
+Command 'reboor' not found, did you mean:
+  command 'reboot' from deb systemd-sysv (255.4-1ubuntu8.11)
+  command 'reboot' from deb finit-sysv (4.2-1)
+  command 'reboot' from deb molly-guard (0.8.3)
+Try: apt install <deb name>
+;root@user-VirtualBox: ~root@user-VirtualBox:~# freboot
+
+
+Broadcast message from root@user-VirtualBox on pts/1 (Thu 2025-11-20 14:49:19 MSK):
+
+The system will reboot now!
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# Connection to 192.168.56.4 closed by remote host.
+
+Connection to 192.168.56.4 closed.
+
+;alex@AlexHP: ~alex@AlexHP:~$ ssh user@192.168.56.4
+
+
+user@192.168.56.4's password: 
+Permission denied, please try again.
+
+
+user@192.168.56.4's password: 
+Welcome to Ubuntu 24.04.3 LTS (GNU/Linux 6.14.0-35-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+Expanded Security Maintenance for Applications is not enabled.
+
+0 updates can be applied immediately.
+
+Enable ESM Apps to receive additional future security updates.
+See https://ubuntu.com/esm or run: sudo pro status
+
+Last login: Thu Nov 20 14:28:56 2025 from 192.168.56.1
+
+;user@user-VirtualBox: ~user@user-VirtualBox:~$ sudo -i
+
+[sudo] password for user: 
+;root@user-VirtualBox: ~root@user-VirtualBox:~# rebootrtouch /mnt/upload/Hi.txtls /mnt/upload/hello.txt ello.txt /
+
+hello.txt  Hi.txt
+;root@user-VirtualBox: ~root@user-VirtualBox:~# rырщцshowmount ol-a 192.168.56.10
+
+All mount points on 192.168.56.10:
+192.168.56.4:/srv/share
+;root@user-VirtualBox: ~root@user-VirtualBox:~# /mnt/upload/
+
+-bash: /mnt/upload: Is a directory
+;root@user-VirtualBox: ~root@user-VirtualBox:~# mount | grp ep mnt
+
+systemd-1 on /[01;31m[Kmnt[m[K type autofs (rw,relatime,fd=50,pgrp=1,timeout=0,minproto=5,maxproto=5,direct,pipe_ino=2516)
+192.168.56.10:/srv/share/ on /[01;31m[Kmnt[m[K type nfs (rw,relatime,vers=3,rsize=524288,wsize=524288,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,mountaddr=192.168.56.10,mountvers=3,mountport=32994,mountproto=udp,local_lock=none,addr=192.168.56.10)
+nsfs on /run/snapd/ns/snapd-desktop-integration.[01;31m[Kmnt[m[K type nsfs (rw)
+nsfs on /run/snapd/ns/firmware-updater.[01;31m[Kmnt[m[K type nsfs (rw)
+;root@user-VirtualBox: ~root@user-VirtualBox:~# ls /mnt/upload/
+hello.txt  Hi.txt     
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# ls /mnt/upload/
+
+hello.txt  Hi.txt
+;root@user-VirtualBox: ~root@user-VirtualBox:~# ls /mnt/upload/[1P/mnt/upload/[1P/mnt/upload/[1P/mnt/upload/t/mnt/upload/o/mnt/upload/u/mnt/upload/c/mnt/upload/h/mnt/upload/ /mnt/upload/touch /mnt/upload/final_check.txt
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# 
+[K
+]0;root@user-VirtualBox: ~root@user-VirtualBox:~# shutdown -r no
+
+[0;1;31mFailed to parse time specification: no
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# shutdown -r now
+
+
+Broadcast message from root@user-VirtualBox on pts/1 (Thu 2025-11-20 15:03:40 MSK):
+
+The system will power off now!
+
+;root@user-VirtualBox: ~root@user-VirtualBox:~# Connection to 192.168.56.4 closed by remote host.
+
+Connection to 192.168.56.4 closed.
+
+;alex@AlexHP: ~alex@AlexHP:~$ wexit
+
+exit
+
+Script done on 2025-11-20 15:03:45+03:00 [COMMAND_EXIT_CODE="255"]

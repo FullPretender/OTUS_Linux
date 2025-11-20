@@ -1,0 +1,659 @@
+Script started on 2025-11-20 14:24:26+03:00 [TERM="xterm-256color" TTY="/dev/pts/0" COLUMNS="118" LINES="57"]
+alex@AlexHP: ~alex@AlexHP[00m:[01;34m~[00m$ ussh user@q192.168.656.10
+alex@AlexHP: ~alex@AlexHP[00m:[01;34m~[00m$ ssh user@192.168.56.10
+
+
+user@192.168.56.10's password: 
+Welcome to Ubuntu 25.10 (GNU/Linux 6.17.0-6-generic x86_64)
+
+ * Documentation:  https://docs.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Thu Nov 20 11:27:05 UTC 2025
+
+  System load:  1.56              Processes:               156
+  Usage of /:   27.9% of 9.75GB   Users logged in:         0
+  Memory usage: 7%                IPv4 address for enp0s3: 10.0.2.15
+  Swap usage:   0%
+
+
+0 updates can be applied immediately.
+
+
+Last login: Thu Nov 20 08:34:14 2025 from 192.168.56.1
+
+user@server: ~user@server[00m:[01;34m~[00m$ sudio =i-i
+
+[sudo: authenticate] Password: 
+root@server: ~root@server:~# [H[2Jroot@server: ~root@server:~# apt install nfs-kernel-server 
+
+
+Reading package lists... 0%
+
+Reading package lists... 100%
+                              
+
+Building dependency tree... 0%
+
+Building dependency tree... 0%
+
+Building dependency tree... 50%
+
+Building dependency tree... 50%
+                                
+
+Reading state information... 0%
+
+Reading state information... 0%
+                                
+
+Solving dependencies... 0%
+
+Solving dependencies... 10%
+                            
+Installing:
+[32m  nfs-kernel-server
+
+Installing dependencies:
+[32m  keyutils  libnfsidmap1  libnl-genl-3-200  nfs-common  rpcbind
+
+Suggested packages:
+  watchdog
+
+Summary:
+  Upgrading: 0, Installing: 6, Removing: 0, Not Upgrading: 3
+  Download size: 615 kB
+  Space needed: 2,189 kB / 6,994 MB available
+
+Continue? [Y/n] y
+
+0% [Working]
+            
+Get:1 http://nl.archive.ubuntu.com/ubuntu questing/main amd64 libnfsidmap1 amd64 1:2.8.3-1ubuntu3 [52.5 kB]
+
+0% [1 libnfsidmap1 2,641 B/52.5 kB 5%]
+                                      
+10% [Working]
+             
+Get:2 http://nl.archive.ubuntu.com/ubuntu questing/main amd64 rpcbind amd64 1.2.7-1build1 [48.6 kB]
+
+11% [2 rpcbind 8,481 B/48.6 kB 17%]
+                                   
+20% [Working]
+             
+Get:3 http://nl.archive.ubuntu.com/ubuntu questing/main amd64 keyutils amd64 1.6.3-6ubuntu2 [58.7 kB]
+
+20% [3 keyutils 2,641 B/58.7 kB 4%]
+                                   
+31% [Working]
+             
+Get:4 http://nl.archive.ubuntu.com/ubuntu questing/main amd64 nfs-common amd64 1:2.8.3-1ubuntu3 [259 kB]
+
+32% [4 nfs-common 12.1 kB/259 kB 5%]
+                                    
+68% [Working]
+             
+Get:5 http://nl.archive.ubuntu.com/ubuntu questing/main amd64 libnl-genl-3-200 amd64 3.7.0-2build1 [13.0 kB]
+
+70% [5 libnl-genl-3-200 13.0 kB/13.0 kB 100%]
+                                             
+73% [Working]
+             
+Get:6 http://nl.archive.ubuntu.com/ubuntu questing/main amd64 nfs-kernel-server amd64 1:2.8.3-1ubuntu3 [183 kB]
+
+74% [6 nfs-kernel-server 12.1 kB/183 kB 7%]
+                                           
+100% [Working]
+              
+Fetched 615 kB in 2s (353 kB/s)
+
+7[0;54r[1ASelecting previously unselected package libnfsidmap1:amd64.
+(Reading database ... 
+(Reading database ... 5%
+(Reading database ... 10%
+(Reading database ... 15%
+(Reading database ... 20%
+(Reading database ... 25%
+(Reading database ... 30%
+(Reading database ... 35%
+(Reading database ... 40%
+(Reading database ... 45%
+(Reading database ... 50%
+(Reading database ... 55%
+(Reading database ... 60%
+(Reading database ... 65%
+(Reading database ... 70%
+(Reading database ... 75%
+(Reading database ... 80%
+(Reading database ... 85%
+(Reading database ... 90%
+(Reading database ... 95%
+(Reading database ... 100%
+(Reading database ... 92923 files and directories currently installed.)
+Preparing to unpack .../0-libnfsidmap1_1%3a2.8.3-1ubuntu3_amd64.deb ...
+7[55;0f[42m[30mProgress: [  0%] [                                                                                                ] 7[55;0f[42m[30mProgress: [  4%] [███▊                                                                                            ] Unpacking libnfsidmap1:amd64 (1:2.8.3-1ubuntu3) ...
+7[55;0f[42m[30mProgress: [  8%] [███████▋                                                                                        ] Selecting previously unselected package rpcbind.
+Preparing to unpack .../1-rpcbind_1.2.7-1build1_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 12%] [███████████▌                                                                                    ] Unpacking rpcbind (1.2.7-1build1) ...
+7[55;0f[42m[30mProgress: [ 16%] [███████████████▎                                                                                ] Selecting previously unselected package keyutils.
+Preparing to unpack .../2-keyutils_1.6.3-6ubuntu2_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 20%] [███████████████████▏                                                                            ] Unpacking keyutils (1.6.3-6ubuntu2) ...
+7[55;0f[42m[30mProgress: [ 24%] [███████████████████████                                                                         ] Selecting previously unselected package nfs-common.
+Preparing to unpack .../3-nfs-common_1%3a2.8.3-1ubuntu3_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 28%] [██████████████████████████▉                                                                     ] Adding 'diversion of /lib/systemd/system/nfs-blkmap.service to /lib/systemd/system/nfs-blkmap.service.usr-is-merged by nfs-common'
+Unpacking nfs-common (1:2.8.3-1ubuntu3) ...
+7[55;0f[42m[30mProgress: [ 32%] [██████████████████████████████▋                                                                 ] Selecting previously unselected package libnl-genl-3-200:amd64.
+Preparing to unpack .../4-libnl-genl-3-200_3.7.0-2build1_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 36%] [██████████████████████████████████▌                                                             ] Unpacking libnl-genl-3-200:amd64 (3.7.0-2build1) ...
+7[55;0f[42m[30mProgress: [ 40%] [██████████████████████████████████████▍                                                         ] Selecting previously unselected package nfs-kernel-server.
+Preparing to unpack .../5-nfs-kernel-server_1%3a2.8.3-1ubuntu3_amd64.deb ...
+7[55;0f[42m[30mProgress: [ 44%] [██████████████████████████████████████████▏                                                     ] Unpacking nfs-kernel-server (1:2.8.3-1ubuntu3) ...
+7[55;0f[42m[30mProgress: [ 48%] [██████████████████████████████████████████████                                                  ] Setting up libnfsidmap1:amd64 (1:2.8.3-1ubuntu3) ...
+7[55;0f[42m[30mProgress: [ 52%] [█████████████████████████████████████████████████▉                                              ] 7[55;0f[42m[30mProgress: [ 56%] [█████████████████████████████████████████████████████▊                                          ] Setting up rpcbind (1.2.7-1build1) ...
+7[55;0f[42m[30mProgress: [ 60%] [█████████████████████████████████████████████████████████▌                                      ] Created symlink '/etc/systemd/system/multi-user.target.wants/rpcbind.service' → '/usr/lib/systemd/system/rpcbind.service'.
+
+Created symlink '/etc/systemd/system/sockets.target.wants/rpcbind.socket' → '/usr/lib/systemd/system/rpcbind.socket'.
+
+7[55;0f[42m[30mProgress: [ 64%] [█████████████████████████████████████████████████████████████▍                                  ] Setting up keyutils (1.6.3-6ubuntu2) ...
+7[55;0f[42m[30mProgress: [ 68%] [█████████████████████████████████████████████████████████████████▎                              ] 7[55;0f[42m[30mProgress: [ 72%] [█████████████████████████████████████████████████████████████████████                           ] Setting up libnl-genl-3-200:amd64 (3.7.0-2build1) ...
+7[55;0f[42m[30mProgress: [ 76%] [████████████████████████████████████████████████████████████████████████▉                       ] 7[55;0f[42m[30mProgress: [ 80%] [████████████████████████████████████████████████████████████████████████████▊                   ] Setting up nfs-common (1:2.8.3-1ubuntu3) ...
+7[55;0f[42m[30mProgress: [ 84%] [████████████████████████████████████████████████████████████████████████████████▋               ] Removing 'diversion of /lib/systemd/system/nfs-blkmap.service to /lib/systemd/system/nfs-blkmap.service.usr-is-merged by nfs-common'
+Creating config file /etc/idmapd.conf with new version
+Creating config file /etc/nfs.conf with new version
+Created symlink '/etc/systemd/system/nfs-client.target.wants/nfs-blkmap.service' → '/usr/lib/systemd/system/nfs-blkmap.service'.
+
+Created symlink '/etc/systemd/system/multi-user.target.wants/nfs-client.target' → '/usr/lib/systemd/system/nfs-client.target'.
+
+Created symlink '/etc/systemd/system/remote-fs.target.wants/nfs-client.target' → '/usr/lib/systemd/system/nfs-client.target'.
+
+auth-rpcgss-module.service is a disabled or a static unit, not starting it.
+nfs-idmapd.service is a disabled or a static unit, not starting it.
+nfs-utils.service is a disabled or a static unit, not starting it.
+proc-fs-nfsd.mount is a disabled or a static unit, not starting it.
+rpc-gssd.service is a disabled or a static unit, not starting it.
+rpc-statd-notify.service is a disabled or a static unit, not starting it.
+rpc-statd.service is a disabled or a static unit, not starting it.
+rpc-svcgssd.service is a disabled or a static unit, not starting it.
+7[55;0f[42m[30mProgress: [ 88%] [████████████████████████████████████████████████████████████████████████████████████▍           ] Setting up nfs-kernel-server (1:2.8.3-1ubuntu3) ...
+7[55;0f[42m[30mProgress: [ 92%] [████████████████████████████████████████████████████████████████████████████████████████▎       ] Created symlink '/etc/systemd/system/nfs-mountd.service.requires/fsidd.service' → '/usr/lib/systemd/system/fsidd.service'.
+
+Created symlink '/etc/systemd/system/nfs-server.service.requires/fsidd.service' → '/usr/lib/systemd/system/fsidd.service'.
+
+Created symlink '/etc/systemd/system/multi-user.target.wants/nfs-server.service' → '/usr/lib/systemd/system/nfs-server.service'.
+
+nfs-mountd.service is a disabled or a static unit, not starting it.
+nfsdcld.service is a disabled or a static unit, not starting it.
+Creating config file /etc/exports with new version
+Creating config file /etc/default/nfs-kernel-server with new version
+7[55;0f[42m[30mProgress: [ 96%] [████████████████████████████████████████████████████████████████████████████████████████████▏   ] Processing triggers for man-db (2.13.1-1) ...
+Processing triggers for libc-bin (2.42-0ubuntu3) ...
+
+7[0;55r[1A[JScanning processes... [                                                                                              ]
+Scanning processes... [                                                                                              ]
+Scanning processes... [=                                                                                             ]
+Scanning processes... [=                                                                                             ]
+Scanning processes... [==                                                                                            ]
+Scanning processes... [==                                                                                            ]
+Scanning processes... [===                                                                                           ]
+Scanning processes... [===                                                                                           ]
+Scanning processes... [====                                                                                          ]
+Scanning processes... [====                                                                                          ]
+Scanning processes... [=====                                                                                         ]
+Scanning processes... [=====                                                                                         ]
+Scanning processes... [======                                                                                        ]
+Scanning processes... [======                                                                                        ]
+Scanning processes... [=======                                                                                       ]
+Scanning processes... [=======                                                                                       ]
+Scanning processes... [========                                                                                      ]
+Scanning processes... [========                                                                                      ]
+Scanning processes... [=========                                                                                     ]
+Scanning processes... [=========                                                                                     ]
+Scanning processes... [==========                                                                                    ]
+Scanning processes... [==========                                                                                    ]
+Scanning processes... [===========                                                                                   ]
+Scanning processes... [===========                                                                                   ]
+Scanning processes... [============                                                                                  ]
+Scanning processes... [============                                                                                  ]
+Scanning processes... [=============                                                                                 ]
+Scanning processes... [=============                                                                                 ]
+Scanning processes... [==============                                                                                ]
+Scanning processes... [==============                                                                                ]
+Scanning processes... [===============                                                                               ]
+Scanning processes... [===============                                                                               ]
+Scanning processes... [================                                                                              ]
+Scanning processes... [================                                                                              ]
+Scanning processes... [=================                                                                             ]
+Scanning processes... [=================                                                                             ]
+Scanning processes... [==================                                                                            ]
+Scanning processes... [==================                                                                            ]
+Scanning processes... [===================                                                                           ]
+Scanning processes... [===================                                                                           ]
+Scanning processes... [====================                                                                          ]
+Scanning processes... [====================                                                                          ]
+Scanning processes... [=====================                                                                         ]
+Scanning processes... [=====================                                                                         ]
+Scanning processes... [======================                                                                        ]
+Scanning processes... [======================                                                                        ]
+Scanning processes... [=======================                                                                       ]
+Scanning processes... [=======================                                                                       ]
+Scanning processes... [========================                                                                      ]
+Scanning processes... [========================                                                                      ]
+Scanning processes... [=========================                                                                     ]
+Scanning processes... [=========================                                                                     ]
+Scanning processes... [==========================                                                                    ]
+Scanning processes... [==========================                                                                    ]
+Scanning processes... [===========================                                                                   ]
+Scanning processes... [===========================                                                                   ]
+Scanning processes... [============================                                                                  ]
+Scanning processes... [============================                                                                  ]
+Scanning processes... [=============================                                                                 ]
+Scanning processes... [=============================                                                                 ]
+Scanning processes... [==============================                                                                ]
+Scanning processes... [==============================                                                                ]
+Scanning processes... [===============================                                                               ]
+Scanning processes... [===============================                                                               ]
+Scanning processes... [================================                                                              ]
+Scanning processes... [================================                                                              ]
+Scanning processes... [=================================                                                             ]
+Scanning processes... [=================================                                                             ]
+Scanning processes... [==================================                                                            ]
+Scanning processes... [==================================                                                            ]
+Scanning processes... [===================================                                                           ]
+Scanning processes... [===================================                                                           ]
+Scanning processes... [====================================                                                          ]
+Scanning processes... [====================================                                                          ]
+Scanning processes... [=====================================                                                         ]
+Scanning processes... [=====================================                                                         ]
+Scanning processes... [======================================                                                        ]
+Scanning processes... [======================================                                                        ]
+Scanning processes... [=======================================                                                       ]
+Scanning processes... [=======================================                                                       ]
+Scanning processes... [========================================                                                      ]
+Scanning processes... [========================================                                                      ]
+Scanning processes... [=========================================                                                     ]
+Scanning processes... [=========================================                                                     ]
+Scanning processes... [==========================================                                                    ]
+Scanning processes... [==========================================                                                    ]
+Scanning processes... [===========================================                                                   ]
+Scanning processes... [===========================================                                                   ]
+Scanning processes... [============================================                                                  ]
+Scanning processes... [============================================                                                  ]
+Scanning processes... [=============================================                                                 ]
+Scanning processes... [=============================================                                                 ]
+Scanning processes... [==============================================                                                ]
+Scanning processes... [===============================================                                               ]
+Scanning processes... [===============================================                                               ]
+Scanning processes... [================================================                                              ]
+Scanning processes... [================================================                                              ]
+Scanning processes... [=================================================                                             ]
+Scanning processes... [=================================================                                             ]
+Scanning processes... [==================================================                                            ]
+Scanning processes... [==================================================                                            ]
+Scanning processes... [===================================================                                           ]
+Scanning processes... [===================================================                                           ]
+Scanning processes... [====================================================                                          ]
+Scanning processes... [====================================================                                          ]
+Scanning processes... [=====================================================                                         ]
+Scanning processes... [=====================================================                                         ]
+Scanning processes... [======================================================                                        ]
+Scanning processes... [======================================================                                        ]
+Scanning processes... [=======================================================                                       ]
+Scanning processes... [=======================================================                                       ]
+Scanning processes... [========================================================                                      ]
+Scanning processes... [========================================================                                      ]
+Scanning processes... [=========================================================                                     ]
+Scanning processes... [=========================================================                                     ]
+Scanning processes... [==========================================================                                    ]
+Scanning processes... [==========================================================                                    ]
+Scanning processes... [===========================================================                                   ]
+Scanning processes... [===========================================================                                   ]
+Scanning processes... [============================================================                                  ]
+Scanning processes... [============================================================                                  ]
+Scanning processes... [=============================================================                                 ]
+Scanning processes... [=============================================================                                 ]
+Scanning processes... [==============================================================                                ]
+Scanning processes... [==============================================================                                ]
+Scanning processes... [===============================================================                               ]
+Scanning processes... [===============================================================                               ]
+Scanning processes... [================================================================                              ]
+Scanning processes... [================================================================                              ]
+Scanning processes... [=================================================================                             ]
+Scanning processes... [=================================================================                             ]
+Scanning processes... [==================================================================                            ]
+Scanning processes... [==================================================================                            ]
+Scanning processes... [===================================================================                           ]
+Scanning processes... [===================================================================                           ]
+Scanning processes... [====================================================================                          ]
+Scanning processes... [====================================================================                          ]
+Scanning processes... [=====================================================================                         ]
+Scanning processes... [=====================================================================                         ]
+Scanning processes... [======================================================================                        ]
+Scanning processes... [======================================================================                        ]
+Scanning processes... [=======================================================================                       ]
+Scanning processes... [=======================================================================                       ]
+Scanning processes... [========================================================================                      ]
+Scanning processes... [========================================================================                      ]
+Scanning processes... [=========================================================================                     ]
+Scanning processes... [=========================================================================                     ]
+Scanning processes... [==========================================================================                    ]
+Scanning processes... [==========================================================================                    ]
+Scanning processes... [===========================================================================                   ]
+Scanning processes... [===========================================================================                   ]
+Scanning processes... [============================================================================                  ]
+Scanning processes... [============================================================================                  ]
+Scanning processes... [=============================================================================                 ]
+Scanning processes... [=============================================================================                 ]
+Scanning processes... [==============================================================================                ]
+Scanning processes... [==============================================================================                ]
+Scanning processes... [===============================================================================               ]
+Scanning processes... [===============================================================================               ]
+Scanning processes... [================================================================================              ]
+Scanning processes... [================================================================================              ]
+Scanning processes... [=================================================================================             ]
+Scanning processes... [=================================================================================             ]
+Scanning processes... [==================================================================================            ]
+Scanning processes... [==================================================================================            ]
+Scanning processes... [===================================================================================           ]
+Scanning processes... [===================================================================================           ]
+Scanning processes... [====================================================================================          ]
+Scanning processes... [====================================================================================          ]
+Scanning processes... [=====================================================================================         ]
+Scanning processes... [=====================================================================================         ]
+Scanning processes... [======================================================================================        ]
+Scanning processes... [======================================================================================        ]
+Scanning processes... [=======================================================================================       ]
+Scanning processes... [=======================================================================================       ]
+Scanning processes... [========================================================================================      ]
+Scanning processes... [========================================================================================      ]
+Scanning processes... [=========================================================================================     ]
+Scanning processes... [=========================================================================================     ]
+Scanning processes... [==========================================================================================    ]
+Scanning processes... [==========================================================================================    ]
+Scanning processes... [===========================================================================================   ]
+Scanning processes... [===========================================================================================   ]
+Scanning processes... [============================================================================================  ]
+Scanning processes... [============================================================================================  ]
+Scanning processes... [============================================================================================= ]
+Scanning processes... [==============================================================================================]
+Scanning processes...                                                                                                 
+Scanning linux images... [                                                                                           ]
+Scanning linux images... [==============================                                                             ]
+Scanning linux images... [============================================================                               ]
+Scanning linux images... [===========================================================================================]
+Scanning linux images...                                                                                              
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+root@server: ~root@server:~# cat /etc/nf
+nfs.conf       nfs.conf.d/    nftables.conf  
+root@server: ~root@server:~# cat /etc/nfs.conf
+
+#
+# This is a general configuration for the
+# NFS daemons and tools
+#
+[general]
+pipefs-directory=/run/rpc_pipefs
+#
+[nfsrahead]
+# nfs=15000
+# nfs4=16000
+#
+[exports]
+# rootdir=/export
+#
+[exportfs]
+# debug=0
+#
+[gssd]
+# verbosity=0
+# rpc-verbosity=0
+# use-memcache=0
+# use-machine-creds=1
+# use-gss-proxy=0
+# avoid-dns=1
+# limit-to-legacy-enctypes=0
+# allowed-enctypes=aes256-cts-hmac-sha384-192,aes128-cts-hmac-sha256-128,camellia256-cts-cmac,camellia128-cts-cmac,aes256-cts-hmac-sha1-96,aes128-cts-hmac-sha1-96
+# context-timeout=0
+# rpc-timeout=5
+# keytab-file=/etc/krb5.keytab
+# cred-cache-directory=
+# preferred-realm=
+# set-home=1
+# upcall-timeout=30
+# cancel-timed-out-upcalls=0
+#
+[lockd]
+# port=0
+# udp-port=0
+#
+[exportd]
+# debug="all|auth|call|general|parse"
+# manage-gids=n
+# state-directory-path=/var/lib/nfs
+# threads=1
+# cache-use-ipaddr=n
+# ttl=1800
+[mountd]
+# debug="all|auth|call|general|parse"
+manage-gids=y
+# descriptors=0
+# port=0
+# threads=1
+# reverse-lookup=n
+# state-directory-path=/var/lib/nfs
+# ha-callout=
+# cache-use-ipaddr=n
+# ttl=1800
+#
+[nfsdcld]
+# debug=0
+# storagedir=/var/lib/nfs/nfsdcld
+#
+[nfsd]
+# debug=0
+# threads=16
+# host=
+# port=0
+# grace-time=90
+# lease-time=90
+# udp=n
+# tcp=y
+# vers3=y
+# vers4=y
+# vers4.0=y
+# vers4.1=y
+# vers4.2=y
+# rdma=n
+# rdma-port=20049
+
+[statd]
+# debug=0
+# port=0
+# outgoing-port=0
+# name=
+# state-directory-path=/var/lib/nfs/statd
+# ha-callout=
+# no-notify=0
+#
+[sm-notify]
+# debug=0
+# force=0
+# retry-time=900
+# outgoing-port=
+# outgoing-addr=
+# lift-grace=y
+#
+[svcgssd]
+# principal=
+root@server: ~root@server:~# ss -tnplu
+
+Netid       State        Recv-Q       Send-Q                Local Address:Port                Peer Address:Port       Process                                                                                                               
+udp         UNCONN       0            0                           0.0.0.0:36212                    0.0.0.0:*           users:(("rpc.mountd",pid=2070,fd=4))                                                                                 
+udp         UNCONN       0            0                        127.0.0.54:53                       0.0.0.0:*           users:(("systemd-resolve",pid=438,fd=16))                                                                            
+udp         UNCONN       0            0                     127.0.0.53%lo:53                       0.0.0.0:*           users:(("systemd-resolve",pid=438,fd=14))                                                                            
+udp         UNCONN       0            0                  10.0.2.15%enp0s3:68                       0.0.0.0:*           users:(("systemd-network",pid=711,fd=32))                                                                            
+udp         UNCONN       0            0                           0.0.0.0:111                      0.0.0.0:*           users:(("rpcbind",pid=1582,fd=5),("systemd",pid=1,fd=140))                                                           
+udp         UNCONN       0            0                           0.0.0.0:32994                    0.0.0.0:*           users:(("rpc.mountd",pid=2070,fd=12))                                                                                
+udp         UNCONN       0            0                         127.0.0.1:323                      0.0.0.0:*           users:(("chronyd",pid=986,fd=4))                                                                                     
+udp         UNCONN       0            0                           0.0.0.0:55750                    0.0.0.0:*                                                                                                                                
+udp         UNCONN       0            0                           0.0.0.0:41514                    0.0.0.0:*           users:(("rpc.mountd",pid=2070,fd=8))                                                                                 
+udp         UNCONN       0            0                           0.0.0.0:49818                    0.0.0.0:*           users:(("rpc.statd",pid=2061,fd=8))                                                                                  
+udp         UNCONN       0            0                         127.0.0.1:965                      0.0.0.0:*           users:(("rpc.statd",pid=2061,fd=5))                                                                                  
+udp         UNCONN       0            0                              [::]:60561                       [::]:*           users:(("rpc.statd",pid=2061,fd=10))                                                                                 
+udp         UNCONN       0            0                              [::]:46637                       [::]:*           users:(("rpc.mountd",pid=2070,fd=14))                                                                                
+udp         UNCONN       0            0                              [::]:111                         [::]:*           users:(("rpcbind",pid=1582,fd=7),("systemd",pid=1,fd=142))                                                           
+udp         UNCONN       0            0                             [::1]:323                         [::]:*           users:(("chronyd",pid=986,fd=5))                                                                                     
+udp         UNCONN       0            0                              [::]:43337                       [::]:*           users:(("rpc.mountd",pid=2070,fd=10))                                                                                
+udp         UNCONN       0            0                              [::]:55629                       [::]:*           users:(("rpc.mountd",pid=2070,fd=6))                                                                                 
+udp         UNCONN       0            0                              [::]:51784                       [::]:*                                                                                                                                
+tcp         LISTEN       0            4096                        0.0.0.0:51465                    0.0.0.0:*           users:(("rpc.statd",pid=2061,fd=9))                                                                                  
+tcp         LISTEN       0            4096                        0.0.0.0:111                      0.0.0.0:*           users:(("rpcbind",pid=1582,fd=4),("systemd",pid=1,fd=139))                                                           
+tcp         LISTEN       0            4096                        0.0.0.0:22                       0.0.0.0:*           users:(("sshd",pid=1109,fd=3),("systemd",pid=1,fd=235))                                                              
+tcp         LISTEN       0            4096                        0.0.0.0:2049                     0.0.0.0:*                                                                                                                                
+tcp         LISTEN       0            4096                  127.0.0.53%lo:53                       0.0.0.0:*           users:(("systemd-resolve",pid=438,fd=15))                                                                            
+tcp         LISTEN       0            4096                        0.0.0.0:35677                    0.0.0.0:*                                                                                                                                
+tcp         LISTEN       0            4096                        0.0.0.0:35611                    0.0.0.0:*           users:(("rpc.mountd",pid=2070,fd=5))                                                                                 
+tcp         LISTEN       0            4096                     127.0.0.54:53                       0.0.0.0:*           users:(("systemd-resolve",pid=438,fd=17))                                                                            
+tcp         LISTEN       0            4096                        0.0.0.0:57921                    0.0.0.0:*           users:(("rpc.mountd",pid=2070,fd=13))                                                                                
+tcp         LISTEN       0            4096                        0.0.0.0:56929                    0.0.0.0:*           users:(("rpc.mountd",pid=2070,fd=9))                                                                                 
+tcp         LISTEN       0            4096                           [::]:111                         [::]:*           users:(("rpcbind",pid=1582,fd=6),("systemd",pid=1,fd=141))                                                           
+tcp         LISTEN       0            4096                           [::]:22                          [::]:*           users:(("sshd",pid=1109,fd=4),("systemd",pid=1,fd=236))                                                              
+tcp         LISTEN       0            4096                           [::]:2049                        [::]:*                                                                                                                                
+tcp         LISTEN       0            4096                           [::]:43821                       [::]:*           users:(("rpc.statd",pid=2061,fd=11))                                                                                 
+tcp         LISTEN       0            4096                           [::]:48401                       [::]:*           users:(("rpc.mountd",pid=2070,fd=7))                                                                                 
+tcp         LISTEN       0            4096                           [::]:50327                       [::]:*           users:(("rpc.mountd",pid=2070,fd=11))                                                                                
+tcp         LISTEN       0            4096                           [::]:40919                       [::]:*           users:(("rpc.mountd",pid=2070,fd=15))                                                                                
+tcp         LISTEN       0            4096                           [::]:38605                       [::]:*                                                                                                                                
+
+root@server: ~root@server:~# mkdir -p ./srv/share/upload
+
+root@server: ~root@server:~# ls /srv/share/upload/chown -R nobody :Nonobgroup /srv/share/
+
+root@server: ~root@server:~# chmod 08777 /srv/share/upload/
+
+root@server: ~root@server:~# [7mcat << EOF > /etc/exports [27m
+
+[7m/srv/share 192.168.50.11/32(rw,sync,root_squash)[27m
+
+[7mEOF[27m
+
+[A[A[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ccat << EOF > /etc/exports 
+
+/srv/share 192.168.50.11/32(rw,sync,root_squash)
+
+EOF
+[A[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1P/32(rw,sync,root_squash)[1P/32(rw,sync,root_squash)
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1P/32(rw,sync,root_squash)
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1P/32(rw,sync,root_squash)
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C6/32(rw,sync,root_squash)
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C./32(rw,sync,root_squash)
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C4/32(rw,sync,root_squash)
+
+
+
+root@server: ~root@server:~# exportfs  -r
+
+root@server: ~root@server:~# exportfs -rs
+
+/srv/share  192.168.56.4/32(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,root_squash,no_all_squash)
+root@server: ~root@server:~# ip a
+
+1: [36mlo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet [35m127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 [34m::1/128 scope host noprefixroute 
+       valid_lft forever preferred_lft forever
+2: [36menp0s3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state [32mUP group default qlen 1000
+    link/ether 08:00:27:97:10:f0 brd ff:ff:ff:ff:ff:ff
+    altname enx0800279710f0
+    inet [35m10.0.2.15/24 metric 100 brd [35m10.0.2.255 scope global dynamic enp0s3
+       valid_lft 85715sec preferred_lft 85715sec
+    inet6 [34mfe80::a00:27ff:fe97:10f0/64 scope link proto kernel_ll 
+       valid_lft forever preferred_lft forever
+3: [36menp0s8: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state [32mUP group default qlen 1000
+    link/ether 08:00:27:16:4b:1e brd ff:ff:ff:ff:ff:ff
+    altname enx080027164b1e
+    inet [35m192.168.56.10/24 brd [35m192.168.56.255 scope global enp0s8
+       valid_lft forever preferred_lft forever
+    inet6 [34mfe80::a00:27ff:fe16:4b1e/64 scope link proto kernel_ll 
+       valid_lft forever preferred_lft forever
+root@server: ~root@server:~# ls /svrv/share/upload/[C[C[1P /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1P /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Ct /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Co /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cu /srv/share/upload/c /srv/share/upload/h /srv/share/upload/[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Chello.txt
+
+root@server: ~root@server:~# touch /srv/share/upload/hello.txt[C[C[C[C[C[1P /srv/share/upload/[1P /srv/share/upload/[1P /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1P /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[1P /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cl /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[Cs /srv/share/upload/
+[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C[C
+
+Hi.txt  hello.txt
+root@server: ~root@server:~# reboot
+
+root@server: ~root@server:~# Connection to 192.168.56.10 closed by remote host.
+
+Connection to 192.168.56.10 closed.
+
+alex@AlexHP: ~alex@AlexHP[00m:[01;34m~[00m$ ssh user@192.168.56.10
+
+
+user@192.168.56.10's password: 
+Welcome to Ubuntu 25.10 (GNU/Linux 6.17.0-6-generic x86_64)
+
+ * Documentation:  https://docs.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/pro
+
+ System information as of Thu Nov 20 11:51:32 UTC 2025
+
+  System load:  1.92              Processes:               205
+  Usage of /:   27.9% of 9.75GB   Users logged in:         0
+  Memory usage: 8%                IPv4 address for enp0s3: 10.0.2.15
+  Swap usage:   0%
+
+
+0 updates can be applied immediately.
+
+
+Last login: Thu Nov 20 11:27:05 2025 from 192.168.56.1
+
+user@server: ~user@server[00m:[01;34m~[00m$ sudo -i
+
+[sudo: authenticate] Password: 
+root@server: ~root@server:~# ls /srv/share/upload/
+
+Hi.txt  hello.txt
+root@server: ~root@server:~# exportfs .-s
+
+/srv/share  192.168.56.4/32(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,root_squash,no_all_squash)
+root@server: ~root@server:~# showmount -a 192.168.56.10
+
+All mount points on 192.168.56.10:
+192.168.56.4:/srv/share
+root@server: ~root@server:~# ls /srv/share/upload/
+
+Hi.txt  final_check.txt  hello.txt
+root@server: ~root@server:~# shutdown -h now
+
+root@server: ~root@server:~# Connection to 192.168.56.10 closed by remote host.
+
+Connection to 192.168.56.10 closed.
+
+alex@AlexHP: ~alex@AlexHP[00m:[01;34m~[00m$ exit
+
+exit
+
+Script done on 2025-11-20 15:03:28+03:00 [COMMAND_EXIT_CODE="255"]
