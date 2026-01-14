@@ -1,0 +1,44 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "generic/ubuntu2204"
+
+  # Выделяю память
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "1024"
+  end
+
+  # Добавляю диски  
+  ENV["VAGRANT_EXPERIMENTAL"] = "disks"
+  config.vm.disk :disk, size: "1GB", name: "disk1"
+  config.vm.disk :disk, size: "1GB", name: "disk2"
+
+  # Пробрасываю порт 80 -> 8080
+  config.vm.network "forwarded_port", guest: 80, host: 8080
+
+  # Делаю профижинг
+  config.vm.provision "shell", inline: <<-SHELL
+    set -e
+
+    DISK1=/dev/sdb
+    DISK2=/dev/sdc
+
+    # Форматирую в ext4
+    mkfs.ext4 -F $DISK1
+    mkfs.ext4 -F $DISK2
+
+    # Создаю каталоги для монтирования и монтирую 
+    mkdir -p /mnt/disk1 /mnt/disk2
+    mount $DISK1 /mnt/disk1
+    mount $DISK2 /mnt/disk2
+
+    # Добавляю в /etc/fstab автомонтирование по UUID дисков
+    UUID1=$(blkid -s UUID -o value $DISK1)
+    UUID2=$(blkid -s UUID -o value $DISK2)
+    echo "UUID=$UUID1 /mnt/disk1 ext4 defaults 0 2" >> /etc/fstab
+    echo "UUID=$UUID2 /mnt/disk2 ext4 defaults 0 2" >> /etc/fstab
+
+    echo "Диски настроены и добавлены в fstab"
+  SHELL
+end
