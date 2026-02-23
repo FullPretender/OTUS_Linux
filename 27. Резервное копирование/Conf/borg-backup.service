@@ -1,0 +1,16 @@
+[Unit]
+Description=Borg Backup
+
+[Service]
+Type=oneshot
+User=vagrant
+Group=vagrant
+WorkingDirectory=/home/vagrant
+Environment="BORG_PASSPHRASE=Otus"
+
+ExecStart=/bin/borg create --stats borg@192.168.56.20:/var/backup/::etc-{now:%%Y-%%m-%%d_%%H:%%M:%%S} /etc
+
+ExecStart=/bin/borg check borg@192.168.56.20:/var/backup/
+
+ExecStart=/bin/borg prune --keep-daily 90 --keep-monthly 12 --keep-yearly 1 borg@192.168.56.20:/var/backup/
+
