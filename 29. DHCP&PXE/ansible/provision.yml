@@ -1,0 +1,127 @@
+---
+- name: Configure PXE Server for Ubuntu 24.04
+  hosts: pxeserver
+  become: true
+  vars:
+    pxe_interface: "enp0s8"
+    pxe_network: "192.168.56.0"
+    pxe_netmask: "255.255.255.0"
+    dhcp_range_start: "192.168.56.100"
+    dhcp_range_end: "192.168.56.120"
+    server_ip: "192.168.56.30"
+    tftp_root: "/srv/tftp"
+    images_root: "/srv/images"
+    ks_root: "/srv/ks"
+    ubuntu_version: "resolute" 
+
+  tasks:
+    - name: Disable Firewall (UFW)
+      systemd:
+        name: ufw
+        state: stopped
+        enabled: false
+      ignore_errors: yes
+
+    - name: Update Apt Cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Required Packages
+      apt:
+        name:
+          - dnsmasq
+          - apache2
+          - wget
+          - syslinux
+          - net-tools
+        state: present
+
+    - name: Create Directories
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ tftp_root }}/amd64"
+        - "{{ tftp_root }}/amd64/pxelinux.cfg"
+        - "{{ images_root }}"
+        - "{{ ks_root }}"
+
+    - name: Copy Ubuntu Netboot Tarball from Shared Folder
+      copy:
+        src: /vagrant/resolute-netboot-amd64.tar.gz
+        dest: "/tmp/netboot.tar.gz"
+        mode: '0755'
+        remote_src: yes
+
+    - name: Extract Netboot Files to TFTP Root
+      unarchive:
+        src: "/tmp/netboot.tar.gz"
+        dest: "{{ tftp_root }}"
+        remote_src: yes
+
+    - name: Copy Ubuntu ISO from Shared Folder
+      copy:
+        src: /vagrant/resolute-live-server-amd64.iso
+        dest: "{{ images_root }}/resolute-live-server-amd64.iso"
+        mode: '0755'
+        remote_src: yes
+
+    - name: Configure Dnsmasq
+      template:
+        src: templates/dnsmasq.conf
+        dest: /etc/dnsmasq.d/pxe.conf
+        mode: '0644'
+      notify: Restart dnsmasq
+
+    - name: Configure Apache VirtualHost
+      template:
+        src: templates/apache.conf
+        dest: /etc/apache2/sites-available/ks-server.conf
+        mode: '0644'
+      notify: Restart apache2
+
+    - name: Enable Apache Site
+      command: a2ensite ks-server.conf
+      args:
+        creates: /etc/apache2/sites-enabled/ks-server.conf
+      notify: Restart apache2
+
+    - name: Configure Autoinstall User-Data
+      template:
+        src: templates/user-data
+        dest: "{{ ks_root }}/user-data"
+        mode: '0644'
+
+    - name: Configure Autoinstall Meta-Data
+      file:
+        path: "{{ ks_root }}/meta-data"
+        state: touch
+        mode: '0644'
+
+    - name: Configure PXE Boot Menu (Legacy BIOS)
+      template:
+        src: templates/pxelinux.cfg.default
+        dest: "{{ tftp_root }}/amd64/pxelinux.cfg/default"
+        mode: '0644'
+
+    - name: Ensure Services are Running
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: true
+      loop:
+        - dnsmasq
+        - apache2
+
+  handlers:
+    - name: Restart dnsmasq
+      systemd:
+        name: dnsmasq
+        state: restarted
+
+    - name: Restart apache2
+      systemd:
+        name: apache2
+        state: restarted
