@@ -1,0 +1,97 @@
+---
+- name: Configure iptables NAT rules on inetRouter2
+  hosts: inetRouter2
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Flush existing NAT rules (optional, for clean state)
+      iptables:
+        table: nat
+        chain: "{{ item }}"
+        flush: yes
+      loop:
+        - PREROUTING
+        - POSTROUTING
+
+    - name: DNAT - Forward port 80 to centralServer:8080
+      iptables:
+        table: nat
+        chain: PREROUTING
+        protocol: tcp
+        destination_port: 80
+        jump: DNAT
+        to_destination: 192.168.1.2:8080
+        state: present
+        comment: "Port forward 80 to centralServer 8080"
+
+    - name: MASQUERADE - NAT for return traffic
+      iptables:
+        table: nat
+        chain: POSTROUTING
+        out_interface: enp0s8
+        jump: MASQUERADE
+        state: present
+        comment: "MASQUERADE for forwarded traffic"
+
+    - name: Allow FORWARD for new connections to centralServer:8080
+      iptables:
+        chain: FORWARD
+        protocol: tcp
+        destination: 192.168.1.2
+        destination_port: 8080
+        ctstate: NEW,ESTABLISHED,RELATED
+        jump: ACCEPT
+        state: present
+        comment: "Allow forwarded traffic to centralServer"
+
+    - name: Allow FORWARD for established/related connections
+      iptables:
+        chain: FORWARD
+        ctstate: ESTABLISHED,RELATED
+        jump: ACCEPT
+        state: present
+        comment: "Allow established connections"
+
+- name: Configure nginx to listen on port 8080
+  hosts: centralServer
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Change default site to listen on port 8080
+      lineinfile:
+        path: /etc/nginx/sites-available/default
+        regexp: '^(\s*)listen\s+80\s+default_server;'
+        line: '\1listen 8080 default_server;'
+        backrefs: yes
+        state: present
+
+    - name: Ensure nginx configuration is valid
+      command: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Start and enable nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Allow port 8080 in iptables
+      iptables:
+        chain: INPUT
+        protocol: tcp
+        destination_port: 8080
+        jump: ACCEPT
+        state: present
+
+    - name: Verify nginx is responding on port 8080
+      uri:
+        url: http://127.0.0.1:8080
+        method: GET
+        status_code: 200
+      register: nginx_response
+      failed_when: nginx_response.status != 200
+
+    - name: Display nginx status
+      debug:
+        msg: "Nginx is now listening on port 8080. Test with: curl http://{{ ansible_host }}:8080"

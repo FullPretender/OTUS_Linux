@@ -1,0 +1,41 @@
+---
+- name: Setup SSH keys for port knocking
+  hosts: centralRouter
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Install sshpass and openssh-client
+      apt:
+        name:
+          - sshpass
+          - openssh-client
+        state: present
+        update_cache: yes
+
+    - name: Ensure .ssh directory exists
+      file:
+        path: /home/vagrant/.ssh
+        state: directory
+        mode: '0700'
+        owner: vagrant
+        group: vagrant
+
+    - name: Generate ed25519 SSH key pair
+      openssh_keypair:
+        path: /home/vagrant/.ssh/id_ed25519
+        type: ed25519
+        owner: vagrant
+        group: vagrant
+        force: no
+      become_user: vagrant
+
+    - name: Copy public key to inetRouter1
+      shell: |
+        sshpass -p 'vagrant' ssh-copy-id -o StrictHostKeyChecking=no \
+        -i /home/vagrant/.ssh/id_ed25519.pub \
+        vagrant@192.168.255.1
+      args:
+        creates: /home/vagrant/.ssh/known_hosts
+      become_user: vagrant
+      ignore_errors: yes

@@ -1,0 +1,51 @@
+---
+- name: Install packages for all nodes
+  hosts: all
+  become: yes
+  gather_facts: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install utilities
+      apt:
+        name:
+          - iptables
+          - iptables-persistent
+          - ipset
+          - net-tools
+          - iproute2
+          - curl
+          - wget
+          - traceroute
+        state: present
+
+- name: Configure routers
+  hosts: routers
+  become: yes
+  tasks:
+    - name: Install knockd for port knocking
+      apt:
+        name:
+          - knockd
+        state: present
+
+- name: Configure servers
+  hosts: servers
+  become: yes
+  tasks:
+    - name: Install nginx
+      apt:
+        name:
+          - nginx
+        state: present
+
+    - name: Ensure nginx is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+

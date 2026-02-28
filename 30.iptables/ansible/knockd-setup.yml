@@ -1,0 +1,38 @@
+---
+- name: Configure knockd on inetRouter1
+  hosts: inetRouter1
+  become: yes
+  gather_facts: yes
+  
+  tasks:
+    - name: Configure knockd
+      copy: 
+        src: templates/knockd.conf
+        dest: /etc/knockd.conf
+        remote_src: no
+        owner: root
+        group: root
+        mode: 0644
+      notify: Restart knockd
+
+    - name: Enable knockd service
+      systemd:
+        name: knockd
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Block SSH by default (after knockd is running)
+      iptables:
+        chain: INPUT
+        protocol: tcp
+        destination_port: 22
+        jump: DROP
+        state: present
+      ignore_errors: yes
+
+  handlers:
+    - name: Restart knockd
+      systemd:
+        name: knockd
+        state: restarted
