@@ -1,0 +1,98 @@
+---
+- name: OSPF Lab Configuration
+  hosts: routers
+  become: yes
+  vars_files:
+    - defaults/main.yml
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install base tools
+      apt:
+        name:
+          - vim
+          - traceroute
+          - tcpdump
+          - net-tools
+          - curl
+        state: present
+
+    - name: Disable UFW firewall
+      service:
+        name: ufw
+        state: stopped
+        enabled: false
+      ignore_errors: yes
+
+    - name: Add FRR GPG key
+      apt_key:
+        url: "https://deb.frrouting.org/frr/keys.asc"
+        state: present
+
+    - name: Add FRR repository
+      apt_repository:
+        repo: 'deb https://deb.frrouting.org/frr {{ ansible_distribution_release }} frr-stable'
+        state: present
+
+    - name: Install FRR packages
+      apt:
+        name:
+          - frr
+          - frr-pythontools
+        state: present
+        update_cache: yes
+
+    - name: Enable IP forwarding
+      sysctl:
+        name: net.ipv4.conf.all.forwarding
+        value: '1'
+        state: present
+
+    - name: Disable RP filter (for asymmetric routing)
+      sysctl:
+        name: net.ipv4.conf.all.rp_filter
+        value: '0'
+        state: present
+
+    - name: Configure FRR daemons
+      template:
+        src: daemons
+        dest: /etc/frr/daemons
+        owner: frr
+        group: frr
+        mode: '0640'
+
+    - name: Configure FRR OSPF
+      template:
+        src: frr.conf.j2
+        dest: /etc/frr/frr.conf
+        owner: frr
+        group: frr
+        mode: '0640'
+      tags:
+        - setup_ospf
+
+    - name: Restart FRR service
+      service:
+        name: frr
+        state: restarted
+        enabled: true
+      tags:
+        - setup_ospf
+
+    - name: Verify FRR status
+      command: systemctl status frr
+      register: frr_status
+      changed_when: false
+      tags:
+        - verify
+
+    - name: Show FRR status
+      debug:
+        var: frr_status.stdout_lines
+      tags:
+        - verify

@@ -1,0 +1,60 @@
+! FRR Configuration for {{ ansible_hostname }}
+frr version 8.1
+frr defaults traditional
+hostname {{ ansible_hostname }}
+log syslog informational
+no ipv6 forwarding
+service integrated-vtysh-config
+
+! Interface enp0s8 (r1-r2 or r2-r3)
+interface enp0s8
+  description {{ ansible_hostname }}-peer
+  ip address {{ hostvars[ansible_hostname]['ansible_enp0s8']['ipv4']['address'] }}/30
+  ip ospf mtu-ignore
+{% if ansible_hostname == 'router1' %}
+  ip ospf cost 1000
+{% elif ansible_hostname == 'router2' and symmetric_routing == true %}
+  ip ospf cost 1000
+{% else %}
+  !ip ospf cost 45
+{% endif %}
+  ip ospf hello-interval {{ ospf_hello_interval }}
+  ip ospf dead-interval {{ ospf_dead_interval }}
+
+! Interface enp0s9 (r1-r3 or r2-r3)
+interface enp0s9
+  description {{ ansible_hostname }}-peer
+  ip address {{ hostvars[ansible_hostname]['ansible_enp0s9']['ipv4']['address'] }}/30
+  ip ospf mtu-ignore
+  ip ospf cost 45
+  ip ospf hello-interval {{ ospf_hello_interval }}
+  ip ospf dead-interval {{ ospf_dead_interval }}
+
+! Interface enp0s10 (local network)
+interface enp0s10
+  description net_{{ ansible_hostname }}
+  ip address {{ hostvars[ansible_hostname]['ansible_enp0s10']['ipv4']['address'] }}/24
+  ip ospf mtu-ignore
+  ip ospf cost 45
+  ip ospf hello-interval {{ ospf_hello_interval }}
+  ip ospf dead-interval {{ ospf_dead_interval }}
+
+! OSPF Process
+router ospf
+{% if router_id_enable == true %}
+  router-id {{ router_id }}
+{% endif %}
+  network 10.0.10.0/30 area 0
+  network 10.0.11.0/30 area 0
+  network 10.0.12.0/30 area 0
+  network 192.168.10.0/24 area 0
+  network 192.168.20.0/24 area 0
+  network 192.168.30.0/24 area 0
+  neighbor 10.0.10.1
+  neighbor 10.0.10.2
+  neighbor 10.0.11.1
+  neighbor 10.0.11.2
+  neighbor 10.0.12.1
+  neighbor 10.0.12.2
+  log file /var/log/frr/frr.log
+  default-information originate always

@@ -1,0 +1,5 @@
+---
+router_id_enable: true
+symmetric_routing: false
+ospf_hello_interval: 10
+ospf_dead_interval: 30
