@@ -1,0 +1,13 @@
+client
+dev tun
+proto udp
+remote 192.168.56.10 {{ vpn_port }}
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+ca ca.crt
+cert client.crt
+key client.key
+comp-lzo
+verb 3

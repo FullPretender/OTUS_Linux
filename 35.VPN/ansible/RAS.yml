@@ -1,0 +1,127 @@
+- name: Task 2 - RAS OpenVPN with PKI
+  hosts: server
+  become: yes
+  vars:
+    vpn_port: 1207
+    tunnel_network: "10.10.10.0"
+    subnet_mask: "255.255.255.0"
+    easy_rsa_path: "/usr/share/easy-rsa"
+    openvpn_pki_path: "/etc/openvpn/pki"
+
+  tasks:
+    - name: Remove existing PKI if present
+      file:
+        path: "{{ easy_rsa_path }}/pki"
+        state: absent
+      when: reset_pki | default(false) | bool
+
+    - name: Initialize PKI
+      shell: |
+        cd {{ easy_rsa_path }}
+        echo "yes" | ./easyrsa init-pki
+      args:
+        creates: "{{ easy_rsa_path }}/pki/ca.crt"
+
+    - name: Build CA
+      shell: |
+        cd {{ easy_rsa_path }}
+        echo "VPN-CA" | ./easyrsa build-ca nopass
+      args:
+        creates: "{{ easy_rsa_path }}/pki/ca.crt"
+
+    - name: Generate Server Key and Cert
+      shell: |
+        cd {{ easy_rsa_path }}
+        echo "server" | ./easyrsa gen-req server nopass
+        echo "yes" | ./easyrsa sign-req server server
+      args:
+        creates: "{{ easy_rsa_path }}/pki/issued/server.crt"
+
+    - name: Generate DH parameters
+      shell: |
+        cd {{ easy_rsa_path }}
+        ./easyrsa gen-dh
+      args:
+        creates: "{{ easy_rsa_path }}/pki/dh.pem"
+
+    - name: Generate Client Key and Cert
+      shell: |
+        cd {{ easy_rsa_path }}
+        echo "client" | ./easyrsa gen-req client nopass
+        echo "yes" | ./easyrsa sign-req client client
+      args:
+        creates: "{{ easy_rsa_path }}/pki/issued/client.crt"
+
+    - name: Create OpenVPN PKI directory structure
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /etc/openvpn/pki
+        - /etc/openvpn/pki/issued
+        - /etc/openvpn/pki/private
+        - /etc/openvpn/client
+        - ./certs
+
+    - name: Create iroute file for client
+      copy:
+        content: "iroute 10.10.10.0 255.255.255.0"
+        dest: /etc/openvpn/client/client
+
+    - name: Copy PKI files to OpenVPN directory
+      copy:
+        src: "{{ easy_rsa_path }}/pki/{{ item.src }}"
+        dest: "{{ openvpn_pki_path }}/{{ item.dest }}"
+        remote_src: yes
+        mode: '0600'
+      loop:
+        - { src: 'ca.crt', dest: 'ca.crt' }
+        - { src: 'issued/server.crt', dest: 'issued/server.crt' }
+        - { src: 'private/server.key', dest: 'private/server.key' }
+        - { src: 'dh.pem', dest: 'dh.pem' }
+        - { src: 'issued/client.crt', dest: 'issued/client.crt' }
+        - { src: 'private/client.key', dest: 'private/client.key' }
+      notify: Restart OpenVPN
+
+    - name: Deploy Server Config
+      template:
+        src: templates/ras_server_conf.j2
+        dest: /etc/openvpn/server.conf
+      notify: Restart OpenVPN
+
+    - name: Deploy systemd unit file
+      template:
+        src: templates/openvpn@.service.j2
+        dest: /etc/systemd/system/openvpn@.service
+      notify: Reload systemd
+
+    - name: Enable and Start OpenVPN
+      systemd:
+        name: openvpn@server
+        enabled: yes
+        state: started
+
+    - name: Fetch PKI files to Local Host
+      fetch:
+        src: "{{ item }}"
+        dest: ./certs/
+        flat: yes
+      loop:
+        - "{{ easy_rsa_path }}/pki/ca.crt"
+        - "{{ easy_rsa_path }}/pki/issued/client.crt"
+        - "{{ easy_rsa_path }}/pki/private/client.key"
+
+    - name: Generate Local Client Config
+      template:
+        src: templates/local_client_conf.j2
+        dest: ./certs/client.conf
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+    - name: Restart OpenVPN
+      systemd:
+        name: openvpn@server
+        state: restarted

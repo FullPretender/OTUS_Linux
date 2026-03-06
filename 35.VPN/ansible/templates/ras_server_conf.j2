@@ -1,0 +1,18 @@
+port {{ vpn_port }}
+proto udp
+dev tun
+ca {{ openvpn_pki_path }}/ca.crt
+cert {{ openvpn_pki_path }}/issued/server.crt
+key {{ openvpn_pki_path }}/private/server.key
+dh {{ openvpn_pki_path }}/dh.pem
+server {{ tunnel_network }} {{ subnet_mask }}
+ifconfig-pool-persist ipp.txt
+client-to-client
+client-config-dir /etc/openvpn/client
+keepalive 10 120
+comp-lzo
+persist-key
+persist-tun
+status /var/log/openvpn-status.log
+log /var/log/openvpn.log
+verb 3

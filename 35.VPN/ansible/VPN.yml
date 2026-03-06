@@ -1,0 +1,87 @@
+---
+- name: Setup OpenVPN Static Key
+  hosts: all
+  become: yes
+  vars:
+    vpn_mode: "tun" 
+    tunnel_network: "10.10.10.0"
+    subnet_mask: "255.255.255.0"
+    server_tunnel_ip: "10.10.10.1"
+    client_tunnel_ip: "10.10.10.2"
+    vpn_port: 1194
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install utilities
+      apt:
+        name:
+          - openvpn
+          - iperf3
+          - easy-rsa
+        state: present
+
+    - name: Generate static key on Server
+      command: openvpn --genkey secret /etc/openvpn/static.key
+      args:
+        creates: /etc/openvpn/static.key
+      when: inventory_hostname == "server"
+
+    - name: Fetch static key from Server to Control Node
+      fetch:
+        src: /etc/openvpn/static.key
+        dest: ./static.key
+        flat: yes
+      when: inventory_hostname == "server"
+
+    - name: Copy static key to Client
+      copy:
+        src: ./static.key
+        dest: /etc/openvpn/static.key
+        mode: '0600'
+      when: inventory_hostname == "client"
+
+    - name: Deploy OpenVPN Server Config
+      template:
+        src: ../templates/server.conf.j2
+        dest: /etc/openvpn/server.conf
+      when: inventory_hostname == "server"
+      notify: Restart OpenVPN
+
+    - name: Deploy OpenVPN Client Config
+      template:
+        src: ../templates/client.conf.j2
+        dest: /etc/openvpn/server.conf
+      when: inventory_hostname == "client"
+      notify: Restart OpenVPN
+
+    - name: Deploy systemd unit file
+      template:
+        src: ../templates/openvpn@.service.j2
+        dest: /etc/systemd/system/openvpn@.service
+      notify: Reload systemd
+
+    - name: Enable and Start OpenVPN service
+      systemd:
+        name: openvpn@server
+        enabled: yes
+        state: started
+
+    - name: Start iperf3 server on VPN Server
+      command: iperf3 -s -D
+      args:
+        creates: /var/run/iperf3.pid
+      when: inventory_hostname == "server"
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Restart OpenVPN
+      systemd:
+        name: openvpn@server
+        state: restarted

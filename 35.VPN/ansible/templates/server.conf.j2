@@ -1,0 +1,8 @@
+dev {{ vpn_mode }}
+ifconfig {{ server_tunnel_ip }} {{ subnet_mask }}
+topology subnet
+secret /etc/openvpn/static.key
+comp-lzo
+status /var/log/openvpn-status.log
+log /var/log/openvpn.log
+verb 3
