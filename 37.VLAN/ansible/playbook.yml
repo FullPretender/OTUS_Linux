@@ -1,0 +1,84 @@
+---
+- name: Base Setup
+  hosts: nets
+  become: yes
+  tasks:
+    - name: Fix CentOS repositories
+      shell: |
+        sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/*.repo
+        sed -i 's/^#.*baseurl=http/baseurl=http/g' /etc/yum.repos.d/*.repo
+        sed -i 's/^mirrorlist=http/#mirrorlist=http/g' /etc/yum.repos.d/*.repo
+      args:
+        executable: /bin/bash
+      changed_when: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Install utils (RHEL/CentOS)
+      yum:
+        name: [vim, traceroute, tcpdump, net-tools]
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install utils (Debian/Ubuntu)
+      apt:
+        name: [vim, traceroute, tcpdump, net-tools]
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+- name: VLAN 1 (CentOS)
+  hosts: testClient1,testServer1
+  become: yes
+  tasks:
+    - name: Deploy VLAN config
+      template:
+        src: templates/ifcfg-vlan.j2
+        dest: /etc/sysconfig/network-scripts/ifcfg-vlan{{ vlan_id }}
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Restart NetworkManager
+      systemd:
+        name: NetworkManager
+        state: restarted
+
+- name: VLAN 2 (Ubuntu)
+  hosts: testClient2,testServer2
+  become: yes
+  tasks:
+    - name: Deploy Netplan config
+      template:
+        src: templates/netplan-vlan.j2
+        dest: /etc/netplan/50-cloud-init.yaml
+        owner: root
+        group: root
+        mode: '0644'
+    - name: Apply Netplan
+      command: netplan apply
+      changed_when: false
+
+- name: Bonding (Active-Backup)
+  hosts: inetRouter,centralRouter
+  become: yes
+  tasks:
+    - name: Configure slave interfaces
+      template:
+        src: templates/ifcfg-slave.j2
+        dest: /etc/sysconfig/network-scripts/ifcfg-{{ item }}
+        owner: root
+        group: root
+        mode: '0644'
+      loop: [eth1, eth2]
+
+    - name: Configure master bond interface
+      template:
+        src: templates/ifcfg-bond0.j2
+        dest: /etc/sysconfig/network-scripts/ifcfg-bond0
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Reboot to activate bond
+      reboot:
+        reboot_timeout: 300
