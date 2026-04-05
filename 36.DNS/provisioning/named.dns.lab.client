@@ -1,0 +1,17 @@
+$TTL 3600
+$ORIGIN dns.lab.
+@               IN      SOA     ns01.dns.lab. root.dns.lab. (
+2711201407 ; serial
+3600       ; refresh
+600        ; retry
+86400      ; expire
+600        ; minimum
+)
+                IN      NS      ns01.dns.lab.
+                IN      NS      ns02.dns.lab.
+
+ns01            IN      A       192.168.56.10
+ns02            IN      A       192.168.56.11
+
+; Только web1 для client1
+web1            IN      A       192.168.56.15
