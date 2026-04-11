@@ -1,0 +1,136 @@
+---
+- name: Fix CentOS 8 EOL Repos & Base Setup
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Fix CentOS repositories
+      shell: |
+        sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/*.repo
+        sed -i 's/^#.*baseurl=http/baseurl=http/g' /etc/yum.repos.d/*.repo
+        sed -i 's/^mirrorlist=http/#mirrorlist=http/g' /etc/yum.repos.d/*.repo
+      args:
+        executable: /bin/bash
+      changed_when: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Clean and rebuild YUM cache
+      shell: yum clean all && yum makecache
+      changed_when: false
+
+    - name: Install common packages & SELinux Python bindings
+      yum:
+        name:
+          - vim
+          - chrony
+          - bash-completion
+          - libselinux-python3
+        state: present
+        update_cache: yes
+
+    - name: Set timezone to Europe/Moscow
+      timezone:
+        name: Europe/Moscow
+
+    - name: Enable and start chronyd
+      service:
+        name: chronyd
+        state: started
+        enabled: yes
+
+    - name: Disable firewalld
+      service:
+        name: firewalld
+        state: stopped
+        enabled: no
+
+    - name: Disable SELinux permanently
+      lineinfile:
+        path: /etc/selinux/config
+        regexp: "^SELINUX="
+        line: "SELINUX=disabled"
+      notify: Reboot hosts
+
+    - name: Disable SELinux immediately (until reboot)
+      command: setenforce 0
+      changed_when: false
+      failed_when: false
+
+    - name: Deploy /etc/hosts
+      template:
+        src: templates/hosts.j2
+        dest: /etc/hosts
+        owner: root
+        group: root
+        mode: '0644'
+
+  handlers:
+    - name: Reboot hosts
+      reboot:
+        msg: "Rebooting after SELinux disable"
+        reboot_timeout: 300
+        pre_reboot_delay: 10
+
+- name: Install FreeIPA Server Packages
+  hosts: servers
+  become: yes
+  tasks:
+    - name: Enable IDM DL1 module stream
+      command: dnf module enable -y idm:DL1
+      changed_when: false
+
+    - name: Install FreeIPA server meta-package
+      yum:
+        name: ipa-server
+        state: present
+        update_cache: yes
+
+    - name: Initialize FreeIPA server
+      shell: |
+        ipa-server-install \
+          --domain=OTUS.LAN \
+          --realm=OTUS.LAN \
+          --ds-password=OtusAdmin1 \
+          --admin-password=OtusAdmin1 \
+          --hostname=ipa.otus.lan \
+          --no-ntp \
+          --unattended
+      args:
+        creates: /etc/ipa/default.conf
+      register: ipa_server_init
+      changed_when: "'The ipa-server-install command was successful' in ipa_server_init.stdout"
+
+- name: Install FreeIPA Client Packages
+  hosts: clients
+  become: yes
+  tasks:
+    - name: Install FreeIPA client
+      yum:
+        name:
+          - freeipa-client
+          - sssd-tools
+        state: present
+        update_cache: yes
+
+    - name: Verify DNS resolution to IPA server
+      command: getent hosts ipa.otus.lan
+      changed_when: false
+
+    - name: Join domain to FreeIPA
+      command: >
+        ipa-client-install
+        --mkhomedir
+        --domain=OTUS.LAN
+        --server=ipa.otus.lan
+        --no-ntp
+        -p admin
+        -w OtusAdmin1
+        --unattended
+      timeout: 300
+      args:
+        creates: /etc/ipa/default.conf
+      register: ipa_join
+      changed_when: >
+        'Client configuration complete' in ipa_join.stdout or
+        'Successfully retrieved CA cert' in ipa_join.stdout
