@@ -1,0 +1,61 @@
+---
+- hosts: DynamicWeb
+  become: yes
+  gather_facts: false
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Verify GPG key fingerprint
+      apt_key:
+        id: 0EBFCD88
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable"
+        state: present
+        update_cache: yes
+
+    - name: Install Docker CE
+      apt:
+        name: docker-ce
+        state: present
+        update_cache: yes
+
+    - name: Add vagrant user to docker group
+      user:
+        name: vagrant
+        groups: docker
+        append: yes
+
+    - name: Install Docker Compose v2
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.24.5/docker-compose-linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Copy project to VM
+      copy:
+        src: project/
+        dest: /home/vagrant/project/
+
+    - name: Reset SSH connection for group changes
+      meta: reset_connection
+
+    - name: Deploy stack
+      command: docker compose up -d
+      args:
+        chdir: /home/vagrant/project
