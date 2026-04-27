@@ -22,7 +22,7 @@
 
 ![Скрин](Screens/3.png)
 
-И Node.js на 980821 порте.
+И Node.js на 8082 порте.
 
 ![Скрин](Screens/4.png)
 
