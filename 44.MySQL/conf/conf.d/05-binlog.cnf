@@ -1,0 +1,14 @@
+[mysqld]
+log-bin = mysql-bin
+binlog_expire_logs_seconds = 604800
+max_binlog_size = 16M
+binlog_format = MIXED
+
+# GTID replication config
+log_replica_updates = ON
+gtid_mode = ON
+enforce_gtid_consistency = ON
+
+# Эта часть только для слэйва - исключаем репликацию таблиц
+#replicate-ignore-table=bet.events_on_demand
+#replicate-ignore-table=bet.v_same_event

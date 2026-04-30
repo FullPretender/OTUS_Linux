@@ -1,0 +1,112 @@
+---
+- name: Base Setup
+  hosts: all
+  become: yes
+  vars:
+    mysql_new_root_pass: "OtusOtus2026!"
+  tasks:
+    - name: Fix CentOS repositories
+      shell: |
+        sed -i 's/mirror.centos.org/vault.centos.org/g' /etc/yum.repos.d/*.repo
+        sed -i 's/^#.*baseurl=http/baseurl=http/g' /etc/yum.repos.d/*.repo
+        sed -i 's/^mirrorlist=http/#mirrorlist=http/g' /etc/yum.repos.d/*.repo
+      args:
+        executable: /bin/bash
+      changed_when: false
+      when: ansible_os_family == "RedHat"
+
+    - name: Install EPEL repository
+      yum:
+        name: epel-release
+        state: present
+        disable_gpg_check: yes
+
+    - name: Install Percona release repository
+      yum:
+        name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+        state: present
+        disable_gpg_check: yes
+
+    - name: Configure Percona repository for PDPS 8.0
+      command: percona-release setup pdps-8.0
+      changed_when: false
+
+    - name: Install Percona Server 8.0
+      yum:
+        name: percona-server-server
+        state: present
+        update_cache: yes
+        disable_gpg_check: yes
+
+    - name: Copy MySQL configuration files from /vagrant (inside VM)
+      shell: cp /vagrant/conf/conf.d/* /etc/my.cnf.d/
+      args:
+        executable: /bin/bash
+
+    - name: Set proper permissions on copied configs
+      file:
+        path: /etc/my.cnf.d
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+        recurse: yes
+
+    - name: Ensure !includedir directive exists in /etc/my.cnf
+      shell: |
+        grep -q '^!includedir /etc/my.cnf.d/' /etc/my.cnf || echo '!includedir /etc/my.cnf.d/' >> /etc/my.cnf
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Ensure server-id = 1 on master
+      lineinfile:
+        path: /etc/my.cnf.d/01-base.cnf
+        regexp: '^server-id'
+        line: 'server-id = 1'
+        state: present
+      when: inventory_hostname == "master"
+
+    - name: Change server-id to 2 on slave
+      lineinfile:
+        path: /etc/my.cnf.d/01-base.cnf
+        regexp: '^server-id\s*='
+        line: 'server-id = 2'
+      when: inventory_hostname == "slave"
+
+    - name: Uncomment replicate-ignore-table for events_on_demand
+      replace:
+        path: /etc/my.cnf.d/05-binlog.cnf
+        regexp: '^#replicate-ignore-table=bet\.events_on_demand'
+        replace: 'replicate-ignore-table=bet.events_on_demand'
+      when: inventory_hostname == "slave"
+
+    - name: Uncomment replicate-ignore-table for v_same_event
+      replace:
+        path: /etc/my.cnf.d/05-binlog.cnf
+        regexp: '^#replicate-ignore-table=bet\.v_same_event'
+        replace: 'replicate-ignore-table=bet.v_same_event'
+      when: inventory_hostname == "slave"
+
+    - name: Restart and enable MySQL service
+      systemd:
+        name: mysql
+        state: restarted
+        enabled: yes
+
+    - name: Find temp pass
+      shell: grep 'temporary password' /var/log/mysqld.log | tail -1 | awk '{print $NF}'
+      register: temp_pass
+      changed_when: false
+      failed_when: false
+
+    - name: Change temp pass
+      shell: |
+        mysql -u root -p'{{ temp_pass.stdout }}' --connect-expired-password \
+          -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_new_root_pass }}'; FLUSH PRIVILEGES;"
+      args:
+        executable: /bin/bash
+      when: temp_pass.rc == 0 and temp_pass.stdout | length > 0
+      changed_when: true
+      ignore_errors: yes
+
