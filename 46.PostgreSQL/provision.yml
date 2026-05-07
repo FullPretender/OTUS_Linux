@@ -1,0 +1,241 @@
+---
+- name: Setup PostgreSQL Replication & Barman Backup
+  hosts: all
+  become: yes
+  vars:
+    master_ip: "192.168.56.11"
+    slave_ip: "192.168.56.12"
+    barman_ip: "192.168.56.13"
+    replicator_password: "Otus2026!"
+    barman_password: "Otus2026!"
+    pg_data_dir: "/var/lib/postgresql/14/main"
+    pg_conf_dir: "/etc/postgresql/14/main"
+
+  tasks:
+    # Базовые утилиты
+    - name: Install base tools
+      apt:
+        name: [vim, telnet, bash-completion, wget, python3-psycopg2, python3-pexpect]
+        state: present
+        update_cache: yes
+
+    # Установка PostgreSQL на ноды
+    - name: Install PostgreSQL server on nodes
+      apt:
+        name: [postgresql, postgresql-contrib]
+        state: present
+        update_cache: yes
+      when: inventory_hostname in ['node1', 'node2']
+
+    - name: Enable & Start PostgreSQL
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+      when: inventory_hostname in ['node1', 'node2']
+
+    # Настройка Мастера (node1)
+    - name: Create replicator user on master
+      become_user: postgres
+      shell: psql -c "CREATE USER replicator WITH REPLICATION ENCRYPTED PASSWORD '{{ replicator_password }}';"
+      args:
+        executable: /bin/bash
+      when: inventory_hostname == 'node1'
+
+    - name: Deploy postgresql.conf to master
+      template:
+        src: templates/postgresql.conf.j2
+        dest: "{{ pg_conf_dir }}/postgresql.conf"
+        owner: postgres
+        group: postgres
+        mode: '0600'
+      when: inventory_hostname == 'node1'
+
+    - name: Deploy pg_hba.conf to master
+      template:
+        src: templates/pg_hba.conf.j2
+        dest: "{{ pg_conf_dir }}/pg_hba.conf"
+        owner: postgres
+        group: postgres
+        mode: '0600'
+      notify: restart postgresql
+      when: inventory_hostname == 'node1'
+
+    - name: Flush handlers to apply master configuration
+      meta: flush_handlers
+
+    - name: Wait for PostgreSQL master to accept connections
+      wait_for:
+        host: "{{ master_ip }}"
+        port: 5432
+        delay: 3
+        timeout: 20
+      when: inventory_hostname == 'node2'
+
+    # Настройка Реплики (node2)
+    - name: Stop PostgreSQL on slave
+      service:
+        name: postgresql
+        state: stopped
+      when: inventory_hostname == 'node2'
+
+    - name: Clean slave data directory
+      file:
+        path: "{{ pg_data_dir }}"
+        state: absent
+      when: inventory_hostname == 'node2'
+
+    - name: Create slave data directory
+      file:
+        path: "{{ pg_data_dir }}"
+        state: directory
+        owner: postgres
+        group: postgres
+        mode: '0700'
+      when: inventory_hostname == 'node2'
+
+    - name: Run pg_basebackup on slave
+      become: yes
+      become_user: postgres
+      environment:
+        PGPASSWORD: "{{ replicator_password }}"
+      command: >
+        pg_basebackup -h {{ master_ip }} -U replicator -p 5432
+        -D {{ pg_data_dir }} -R -P -X stream
+      args:
+        creates: "{{ pg_data_dir }}/PG_VERSION"
+      when: inventory_hostname == 'node2'
+
+    - name: Update listen_addresses on slave
+      lineinfile:
+        path: "{{ pg_conf_dir }}/postgresql.conf"
+        regexp: '^listen_addresses'
+        line: "listen_addresses = 'localhost, {{ slave_ip }}'"
+      when: inventory_hostname == 'node2'
+
+    - name: Start PostgreSQL on slave
+      service:
+        name: postgresql
+        state: started
+      when: inventory_hostname == 'node2'
+
+    # Установка Barman
+    - name: Install barman-cli on nodes
+      apt:
+        name: barman-cli
+        state: present
+        update_cache: yes
+      when: inventory_hostname in ['node1', 'node2']
+
+    - name: Install Barman & postgresql on barman server
+      apt:
+        name: [barman, barman-cli, postgresql]
+        state: present
+        update_cache: yes
+      when: inventory_hostname == 'barman'
+
+    # Генерация SSH-ключей
+    - name: Generate SSH key for postgres on node1
+      user:
+        name: postgres
+        generate_ssh_key: yes
+        ssh_key_type: rsa
+        ssh_key_bits: 4096
+        force: no
+      when: inventory_hostname == 'node1'
+
+    - name: Generate SSH key for barman on barman server
+      user:
+        name: barman
+        uid: 994
+        shell: /bin/bash
+        generate_ssh_key: yes
+        ssh_key_type: rsa
+        ssh_key_bits: 4096
+        force: no
+      when: inventory_hostname == 'barman'
+
+    # Обмен SSH-ключами
+    - name: Fetch postgres public key from node1
+      slurp:
+        src: "/var/lib/postgresql/.ssh/id_rsa.pub"
+      register: node1_pub_key
+      when: inventory_hostname == 'node1'
+
+    - name: Deploy node1 public key to barman authorized_keys
+      authorized_key:
+        user: barman
+        key: "{{ hostvars['node1']['node1_pub_key']['content'] | b64decode }}"
+        state: present
+      delegate_to: barman
+      when: inventory_hostname == 'node1'
+
+    - name: Fetch barman public key from barman server
+      slurp:
+        src: "/var/lib/barman/.ssh/id_rsa.pub"
+      register: barman_pub_key
+      when: inventory_hostname == 'barman'
+
+    - name: Deploy barman public key to node1 authorized_keys
+      authorized_key:
+        user: postgres
+        key: "{{ hostvars['barman']['barman_pub_key']['content'] | b64decode }}"
+        state: present
+      delegate_to: node1
+      when: inventory_hostname == 'barman'
+
+    # Настройка пользователя Barman в PostgreSQL
+    - name: Create barman user in PostgreSQL
+      become_user: postgres
+      shell: psql -c "CREATE USER barman WITH SUPERUSER REPLICATION ENCRYPTED PASSWORD '{{ barman_password }}';"
+      args:
+        executable: /bin/bash
+      when: inventory_hostname == 'node1'
+
+    - name: Create test database 'otus' on master
+      become_user: postgres
+      shell: psql -c "CREATE DATABASE otus;"
+      args:
+        executable: /bin/bash
+      when: inventory_hostname == "node1"
+
+    - name: Create test table 'test' in 'otus' database on master
+      become_user: postgres
+      shell: psql -d otus -c "CREATE TABLE test (id int, name varchar(30)); INSERT INTO test VALUES (1, 'alex');"
+      args:
+        executable: /bin/bash
+      when: inventory_hostname == "node1"
+
+    # Настройка Barman Server
+    - name: Create .pgpass for barman user
+      template:
+        src: templates/.pgpass.j2
+        dest: /var/lib/barman/.pgpass
+        owner: barman
+        group: barman
+        mode: '0600'
+      when: inventory_hostname == 'barman'
+
+    - name: Deploy global barman.conf
+      template:
+        src: templates/barman.conf.j2
+        dest: /etc/barman.conf
+        owner: barman
+        group: barman
+        mode: '0755'
+      when: inventory_hostname == 'barman'
+
+    - name: Deploy node1.conf for barman
+      template:
+        src: templates/node1.conf.j2
+        dest: /etc/barman.d/node1.conf
+        owner: barman
+        group: barman
+        mode: '0755'
+      when: inventory_hostname == 'barman'
+
+  handlers:
+    - name: restart postgresql
+      service:
+        name: postgresql
+        state: restarted
