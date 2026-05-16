@@ -1,0 +1,138 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "diplom-ubuntu"
+  config.vm.box_check_update = false
+  config.ssh.insert_key = false
+  config.ssh.private_key_path = ["~/.vagrant.d/insecure_private_key"]
+  
+  # Глобальные настройки VirtualBox
+  config.vm.provider "virtualbox" do |vb|
+    vb.gui = false
+    vb.memory = 1024
+    vb.cpus = 1
+    vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+  end
+
+  # Имя изолированной внутренней сети для сервисного трафика
+  INTERNAL_NET = "diplom_lab_internal"
+
+  # ==========================================
+  # VM1: Frontend
+  # ==========================================
+  config.vm.define "frontend" do |frontend|
+    frontend.vm.hostname = "frontend.local"
+    
+    # Интерфейс 1: Управление (Host-Only, доступен хосту для Ansible)
+    frontend.vm.network "private_network", ip: "192.168.56.10"
+    
+    # Интерфейс 2: Сервисный (Internal, только для связи с бэкендом)
+    # Примечание: Nginx будет слушать на всех интерфейсах или явно на eth1/eth2
+    frontend.vm.network "private_network", ip: "10.10.10.10", virtualbox__intnet: INTERNAL_NET, auto_config: true
+
+    # Проброс портов для доступа из браузера хоста
+    frontend.vm.network "forwarded_port", guest: 80,  host: 8080
+    frontend.vm.network "forwarded_port", guest: 443, host: 8443
+    frontend.vm.network "forwarded_port", guest: 22,  host: 2201, id: "ssh"
+
+    frontend.vm.provider "virtualbox" do |vb|
+      vb.name = "diplom-frontend"
+      vb.memory = 1024
+      vb.cpus = 1
+    end
+  end
+
+  # ==========================================
+  # VM2: Backend Master
+  # ==========================================
+  config.vm.define "backend-1" do |backend1|
+    backend1.vm.hostname = "backend-1.local"
+    
+    # Интерфейс 1: Управление
+    backend1.vm.network "private_network", ip: "192.168.56.20"
+    # Интерфейс 2: Сервисный
+    backend1.vm.network "private_network", ip: "10.10.10.20", virtualbox__intnet: INTERNAL_NET, auto_config: true
+
+    backend1.vm.network "forwarded_port", guest: 22, host: 2202, id: "ssh"
+
+    backend1.vm.provider "virtualbox" do |vb|
+      vb.name = "diplom-backend-1"
+      vb.memory = 1048
+      vb.cpus = 2
+    end
+  end
+
+  # ==========================================
+  # VM3: Backend Slave
+  # ==========================================
+  config.vm.define "backend-2" do |backend2|
+    backend2.vm.hostname = "backend-2.local"
+    
+    # Интерфейс 1: Управление
+    backend2.vm.network "private_network", ip: "192.168.56.21"
+    # Интерфейс 2: Сервисный
+    backend2.vm.network "private_network", ip: "10.10.10.21", virtualbox__intnet: INTERNAL_NET, auto_config: true
+
+    backend2.vm.network "forwarded_port", guest: 22, host: 2203, id: "ssh"
+
+    backend2.vm.provider "virtualbox" do |vb|
+      vb.name = "diplom-backend-2"
+      vb.memory = 2048
+      vb.cpus = 2
+    end
+
+  end
+
+  # ==========================================
+  # VM4: Monitoring
+  # ==========================================
+  config.vm.define "monitoring" do |monitoring|
+    monitoring.vm.hostname = "monitoring.local"
+    
+    # Интерфейс 1: Управление
+    monitoring.vm.network "private_network", ip: "192.168.56.30"
+    # Интерфейс 2: Сервисный
+    monitoring.vm.network "private_network", ip: "10.10.10.30", virtualbox__intnet: INTERNAL_NET, auto_config: true
+
+    monitoring.vm.network "forwarded_port", guest: 22,   host: 2204, id: "ssh"
+    monitoring.vm.network "forwarded_port", guest: 3000, host: 3000, auto_correct: true
+    monitoring.vm.network "forwarded_port", guest: 9090, host: 9090, auto_correct: true
+    monitoring.vm.network "forwarded_port", guest: 9093, host: 9093, auto_correct: true
+    monitoring.vm.network "forwarded_port", guest: 8000, host: 8000, auto_correct: true
+
+    monitoring.vm.provider "virtualbox" do |vb|
+      vb.name = "diplom-monitoring"
+      vb.memory = 2048
+      vb.cpus = 2
+    end
+  end
+
+  # ==========================================
+  # VM5: Logging
+  # ==========================================
+  config.vm.define "logging" do |logging|
+    logging.vm.hostname = "logging.local"
+    
+    # Интерфейс 1: Управление
+    logging.vm.network "private_network", ip: "192.168.56.40"
+    # Интерфейс 2: Сервисный
+    logging.vm.network "private_network", ip: "10.10.10.40", virtualbox__intnet: INTERNAL_NET, auto_config: true
+
+    logging.vm.network "forwarded_port", guest: 22,   host: 2205, id: "ssh"
+    logging.vm.network "forwarded_port", guest: 3100, host: 3100, auto_correct: true # Loki
+
+    logging.vm.provider "virtualbox" do |vb|
+      vb.name = "diplom-logging"
+      vb.memory = 2048
+      vb.cpus = 2
+    end
+
+    # Общий provision запускается на последней VM, когда все узлы уже созданы.
+    logging.vm.provision "ansible" do |ansible|
+      ansible.playbook = "ansible/site.yml"
+      ansible.inventory_path = "ansible/hosts.ini"
+      ansible.config_file = "ansible/ansible.cfg"
+      ansible.limit = "all"
+      #ansible.verbose = "v"
+    end
+  end
+end

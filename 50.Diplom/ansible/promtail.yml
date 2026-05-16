@@ -1,0 +1,79 @@
+---
+- name: Настройка Promtail на всех узлах
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Создание пользователя promtail
+      user:
+        name: promtail
+        system: yes
+        shell: /usr/sbin/nologin
+        create_home: no
+        groups: adm
+        append: yes
+
+    - name: Проверка наличия бинарника Promtail
+      stat:
+        path: /usr/local/bin/promtail
+      register: promtail_stat
+
+    - name: Установить бинарник Promtail из box-архива
+      shell: |
+        set -eu
+        archive="{{ box_artifacts_dir }}/promtail.zip"
+        member=$(unzip -Z1 "$archive" | grep -E '(^|/)promtail(-linux-amd64)?$' | head -n 1)
+        test -n "$member"
+        unzip -p "$archive" "$member" > /usr/local/bin/promtail
+        chmod 0755 /usr/local/bin/promtail
+      args:
+        creates: /usr/local/bin/promtail
+      when: not promtail_stat.stat.exists
+      notify: Restart Promtail
+
+    - name: Создание директорий Promtail
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /etc/promtail, owner: root, group: root, mode: '0755' }
+        - { path: /var/lib/promtail, owner: promtail, group: promtail, mode: '0755' }
+
+    - name: Развернуть promtail.yml
+      template:
+        src: templates/promtail/promtail.yml.j2
+        dest: /etc/promtail/promtail.yml
+        owner: root
+        group: promtail
+        mode: '0640'
+      notify: Restart Promtail
+
+    - name: Развернуть systemd-юнит Promtail
+      template:
+        src: templates/promtail/promtail.service.j2
+        dest: /etc/systemd/system/promtail.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Активация и запуск Promtail
+      systemd:
+        name: promtail.service
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart Promtail
+      systemd:
+        name: promtail.service
+        state: restarted
+        daemon_reload: yes
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

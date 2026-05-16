@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+export RESTIC_PASSWORD_FILE="/etc/restic_password"
+RESTIC_REPO="{{ restic_repo_path }}"
+
+restic backup \
+  --repo "$RESTIC_REPO" \
+  --tag frontend \
+  --exclude-caches \
+  /etc/nginx \
+  /etc/ssl/certs/lab.crt \
+  /etc/ssl/private/lab.key \
+  >> /var/log/restic_backup_frontend.log 2>&1
+
+# Очистка старых снапшотов по политике ТЗ (7 дней, 4 недели)
+restic forget --repo "$RESTIC_REPO" --keep-daily 7 --keep-weekly 4 --prune

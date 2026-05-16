@@ -1,0 +1,9 @@
+[Unit]
+Description=WordPress HA — выравнивание MySQL Master/Slave
+After=mysql.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wp-ha-db-sync.sh
+Nice=10

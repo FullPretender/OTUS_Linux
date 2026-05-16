@@ -1,0 +1,39 @@
+<?php
+define( 'DB_NAME', '{{ db_wp_name }}' );
+define( 'DB_USER', '{{ db_wp_user }}' );
+define( 'DB_PASSWORD', '{{ db_wp_password }}' );
+define( 'DB_HOST', '127.0.0.1' );
+define( 'DB_CHARSET', 'utf8mb4' );
+define( 'DB_COLLATE', '' );
+
+define( 'WP_SITEURL', 'https://{{ domain_name }}:{{ wp_public_port }}' );
+define( 'WP_HOME', 'https://{{ domain_name }}:{{ wp_public_port }}' );
+define( 'FS_METHOD', 'direct' );
+
+{# Куки без порта; не подменяем HTTP_HOST — иначе цикл wp-login ↔ wp-admin #}
+define( 'COOKIE_DOMAIN', '{{ domain_name }}' );
+define( 'COOKIEPATH', '/' );
+define( 'SITECOOKIEPATH', '/' );
+define( 'ADMIN_COOKIE_PATH', '/' );
+
+define( 'AUTH_KEY',         'lab-auth-key-unique-string-here!' );
+define( 'SECURE_AUTH_KEY',  'lab-secure-auth-key-unique-string!' );
+define( 'LOGGED_IN_KEY',    'lab-logged-in-key-unique-string!' );
+define( 'NONCE_KEY',        'lab-nonce-key-unique-string-here!' );
+define( 'AUTH_SALT',        'lab-auth-salt-unique-string-here!' );
+define( 'SECURE_AUTH_SALT', 'lab-secure-salt-unique-string!' );
+define( 'LOGGED_IN_SALT',   'lab-logged-in-salt-unique-string!' );
+define( 'NONCE_SALT',       'lab-nonce-salt-unique-string-here!' );
+
+$table_prefix = 'wp_';
+define( 'WP_DEBUG', false );
+
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+
+
+if ( ! defined( 'ABSPATH' ) ) {
+    define( 'ABSPATH', __DIR__ . '/' );
+}
+require_once ABSPATH . 'wp-settings.php';

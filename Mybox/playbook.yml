@@ -1,0 +1,204 @@
+---
+- name: Update and clean Ubuntu system
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+###Обновление и установка софта
+    - name: Update apt cache and upgrade all packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        force_apt_get: yes
+        autoremove: yes
+        autoclean: yes
+
+    - name: Install base dependencies and services from repo
+      apt:
+        name:
+          - nginx
+          - mysql-server
+          - php8.1-fpm
+          - php8.1-mysql
+          - php8.1-curl
+          - php8.1-xml
+          - php8.1-gd
+          - php8.1-mbstring
+          - php8.1-zip
+          - ufw
+          - restic
+          - curl
+          - wget
+          - unzip
+          - tar
+          - openssl
+          - apache2-utils 
+          - python3-pymysql
+          - gnupg2
+          - apt-transport-https
+        state: present
+        update_cache: yes
+
+###Скачивание архивов
+    - name: Скачать Loki
+      get_url:
+        url: "https://github.com/grafana/loki/releases/download/v3.2.0/loki-linux-amd64.zip"
+        dest: "/opt/loki.zip"
+        mode: '0644'
+
+    - name: Скачать Node Exporter
+      get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v1.8.2/node_exporter-1.8.2.linux-amd64.tar.gz"
+        dest: "/opt/node_exporter.tar.gz"
+        mode: '0644'
+
+    - name: Скачать Prometheus
+      get_url:
+        url: "https://github.com/prometheus/prometheus/releases/download/v2.54.0/prometheus-2.54.0.linux-amd64.tar.gz"
+        dest: "/opt/prometheus.tar.gz"
+        mode: '0644'
+
+    - name: Скачать Alertmanager
+      get_url:
+        url: "https://github.com/prometheus/alertmanager/releases/download/v0.27.0/alertmanager-0.27.0.linux-amd64.tar.gz"
+        dest: "/opt/alertmanager.tar.gz"
+        mode: '0644'
+
+    - name: Скачать Rest Server
+      get_url:
+        url: "https://github.com/restic/rest-server/releases/download/v0.13.0/rest-server_0.13.0_linux_amd64.tar.gz"
+        dest: "/opt/rest-server.tar.gz"
+        mode: '0644'
+
+    - name: Скачать Alloy
+      get_url:
+        url: "https://github.com/grafana/alloy/releases/download/v1.16.1/alloy-linux-amd64.zip"
+        dest: "/opt/alloy.zip"
+        mode: '0644'
+
+    - name: Скачивание WordPress
+      get_url:
+        url: "https://ru.wordpress.org/latest-ru_RU.tar.gz"
+        dest: "/opt/wordpress_latest-ru_RU.tar.gz"
+        mode: '0644'
+
+    - name: Скачать Promtail
+      get_url:
+        url: "https://github.com/grafana/loki/releases/download/v3.0.0/promtail-linux-amd64.zip"
+        dest: "/opt/promtail.zip"
+        mode: '0644'
+
+###Установка grafana
+
+    - name: Добавить GPG-ключ Grafana
+      apt_key:
+        url: "https://apt.grafana.com/gpg.key"
+        state: present
+      ignore_errors: yes
+
+    - name: Добавить репозиторий Grafana
+      apt_repository:
+        repo: "deb https://apt.grafana.com stable main"
+        state: present
+        filename: grafana
+        update_cache: yes
+      ignore_errors: yes
+
+    - name: Grafana
+      apt:
+        name: grafana
+        state: present
+        update_cache: yes
+
+###Найстройка для vagrant
+    - name: Ensure vagrant user exists
+      user:
+        name: vagrant
+        state: present
+        shell: /bin/bash
+
+    - name: Create .ssh directory for vagrant user
+      file:
+        path: /home/vagrant/.ssh
+        state: directory
+        mode: '0700'
+        owner: vagrant
+        group: vagrant
+
+    - name: Download Vagrant insecure public key
+      get_url:
+        url: "https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub"
+        dest: /home/vagrant/.ssh/authorized_keys
+        mode: '0600'
+        owner: vagrant
+        group: vagrant
+        force: yes
+        validate_certs: no 
+
+    - name: Set correct permissions for .ssh directory
+      file:
+        path: /home/vagrant/.ssh
+        state: directory
+        mode: '0700'
+        owner: vagrant
+        group: vagrant
+
+    - name: Set correct permissions for authorized_keys
+      file:
+        path: /home/vagrant/.ssh/authorized_keys
+        state: file
+        mode: '0600'
+        owner: vagrant
+        group: vagrant
+
+    - name: Configure passwordless sudo for vagrant
+      copy:
+        content: "vagrant ALL=(ALL) NOPASSWD: ALL\n"
+        dest: /etc/sudoers.d/vagrant
+        mode: '0440'
+        validate: 'visudo -cf %s'
+
+    - name: Set password for vagrant user to 'vagrant'
+      user:
+        name: vagrant
+        password: "{{ 'vagrant' | password_hash('sha512') }}"
+        update_password: always
+
+###Очистка системы
+    - name: Disable cloud-init permanently
+      file:
+        path: /etc/cloud/cloud-init.disabled
+        state: touch
+
+    - name: Clean cloud-init state data
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/cloud/instances
+        - /var/lib/cloud/instance
+        - /var/lib/cloud/data
+      ignore_errors: yes
+
+    - name: Clean apt cache
+      apt:
+        autoclean: yes
+        clean: yes
+
+    - name: Clear journal logs (optional, to reduce box size)
+      command: journalctl --vacuum-size=1M
+      changed_when: false
+
+    - name: Clear temporary files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/*
+        - /var/tmp/*
+
+#sudo apt-get clean
+#sudo dd if=/dev/zero of=/EMPTY bs=1M || true
+#sudo rm -f /EMPTY
+#vagrant package --output diplom-ubuntu.box && vagrant box add diplom-ubuntu ./diplom-ubuntu.box --force

@@ -1,0 +1,43 @@
+---
+- name: Настройка UFW для всех узлов
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Установка UFW
+      apt:
+        name: ufw
+        state: present
+      tags: [always]
+
+    - name: Применение правил UFW
+      ufw:
+        rule: "{{ item.rule }}"
+        port: "{{ item.port }}"
+        proto: "{{ item.proto | default('tcp') }}"
+        from: "{{ item.from | default('any') }}"
+      loop: "{{ ufw_final_rules }}"
+      notify: Reload UFW
+
+    - name: UFW запрет входящих по умолчанию
+      ufw:
+        direction: incoming
+        default: deny
+      notify: Reload UFW
+
+    - name: UFW разрешение исходящих по умолчанию
+      ufw:
+        direction: outgoing
+        default: allow
+      notify: Reload UFW
+
+    - name: UFW включение файервола
+      ufw:
+        state: enabled
+        logging: "on"
+      notify: Reload UFW
+
+  handlers:
+    - name: Reload UFW
+      command: ufw reload
+      changed_when: false

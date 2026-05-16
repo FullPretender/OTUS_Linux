@@ -1,0 +1,598 @@
+---
+- name: Настройка Backend Node (MySQL + PHP-FPM + WordPress + UFW + Restic)
+  hosts: backend_master:backend_slave
+  ignore_unreachable: true
+  become: yes
+
+  tasks:
+    # =============================================================================
+    # 1. MySQL — базовая настройка
+    # =============================================================================
+    - name: "1. MySQL — базовая настройка"
+      block:
+        # zz-* в mysql.conf.d грузится ПОСЛЕ mysqld.cnf (иначе bind-address снова 127.0.0.1)
+        - name: Развертывание конфигурации MySQL
+          template:
+            src: "templates/mysql/mysql_{{ db_role }}.cnf.j2"
+            dest: /etc/mysql/mysql.conf.d/zz-{{ db_role }}.cnf
+            owner: root
+            group: root
+            mode: '0644'
+          notify: Restart MySQL
+
+        - name: Удаление устаревших конфигов MySQL
+          ansible.builtin.file:
+            path: "{{ item }}"
+            state: absent
+          loop:
+            - /etc/mysql/conf.d/master.cnf
+            - /etc/mysql/conf.d/slave.cnf
+            - /etc/mysql/mysql.conf.d/99-master.cnf
+            - /etc/mysql/mysql.conf.d/99-slave.cnf
+
+        - name: Запуск и активация MySQL
+          service:
+            name: mysql
+            state: started
+            enabled: yes
+
+        - name: Установка пароля root для MySQL
+          community.mysql.mysql_user:
+            name: root
+            password: "{{ db_root_password }}"
+            login_unix_socket: /run/mysqld/mysqld.sock
+            state: present
+            column_case_sensitive: false
+
+        - name: Создание файла .my.cnf для root
+          copy:
+            content: |
+              [client]
+              user=root
+              password={{ db_root_password }}
+            dest: /root/.my.cnf
+            owner: root
+            group: root
+            mode: '0600'
+
+        - name: Создание пользователя для репликации
+          community.mysql.mysql_user:
+            name: "{{ repl_user }}"
+            password: "{{ repl_password }}"
+            priv: "*.*:REPLICATION SLAVE"
+            host: "{{ slave_ip }}"
+            login_unix_socket: /run/mysqld/mysqld.sock
+            state: present
+            column_case_sensitive: false
+          when: db_role == 'master'
+
+        - name: Применение перезапуска MySQL на Master (включить binlog)
+          ansible.builtin.meta: flush_handlers
+          when: db_role == 'master'
+
+    # =============================================================================
+    # 2. WordPress — база данных (только Master)
+    # =============================================================================
+    - name: "2. WordPress — база данных (только Master)"
+      block:
+        # БД и пользователь WP создаются только на Master — на Slave приедут по репликации
+        - name: Создание БД для WordPress
+          community.mysql.mysql_db:
+            name: "{{ db_wp_name }}"
+            state: present
+            login_unix_socket: /run/mysqld/mysqld.sock
+          when: db_role == 'master'
+
+        - name: Создание пользователя для WordPress
+          community.mysql.mysql_user:
+            name: "{{ db_wp_user }}"
+            password: "{{ db_wp_password }}"
+            priv: "{{ db_wp_name }}.*:ALL"
+            host: "%"
+            login_unix_socket: /run/mysqld/mysqld.sock
+            state: present
+            column_case_sensitive: false
+          when: db_role == 'master'
+
+        - name: Проверка, установлен ли WordPress demo-сайт
+          ansible.builtin.shell: >
+            mysql --defaults-file=/root/.my.cnf -NBe
+            "SELECT option_value FROM {{ db_wp_name }}.wp_options WHERE option_name = 'siteurl' LIMIT 1"
+          register: wp_demo_db_check
+          changed_when: false
+          failed_when: false
+          when: db_role == 'master' and wp_demo_restore_enabled | bool
+
+        - name: Копирование SQL-дампа demo WordPress на Master
+          ansible.builtin.copy:
+            src: "{{ wp_demo_sql_src }}"
+            dest: /tmp/wordpress-demo.sql
+            mode: '0600'
+          when: >
+            db_role == 'master'
+            and wp_demo_restore_enabled | bool
+            and wp_demo_db_check.rc | default(1) != 0
+
+        - name: Импорт demo WordPress в пустую БД
+          ansible.builtin.shell: mysql --defaults-file=/root/.my.cnf {{ db_wp_name }} < /tmp/wordpress-demo.sql
+          when: >
+            db_role == 'master'
+            and wp_demo_restore_enabled | bool
+            and wp_demo_db_check.rc | default(1) != 0
+
+        - name: Удаление временного SQL-дампа demo WordPress
+          ansible.builtin.file:
+            path: /tmp/wordpress-demo.sql
+            state: absent
+          when: db_role == 'master' and wp_demo_restore_enabled | bool
+
+    # =============================================================================
+    # 3. WordPress — файлы и конфигурация
+    # =============================================================================
+    - name: "3. WordPress — файлы и конфигурация"
+      block:
+        - name: Создание директории WordPress
+          file:
+            path: "{{ wp_dir }}"
+            state: directory
+            owner: www-data
+            group: www-data
+            mode: '0755'
+
+        # Проверка ДО unarchive: в архиве уже есть twentytwentyfour — иначе rsync пропустится ошибочно
+        - name: Проверка, синхронизирован ли wp-content с Master (только Slave)
+          ansible.builtin.stat:
+            path: "{{ wp_content_sync_marker }}"
+          when: db_role == 'slave'
+          register: wp_content_check
+
+        # Ключ копируется с control node на Slave — путь ansible_ssh_private_key_file на VM не существует
+        - name: Временное копирование SSH-ключа на Slave для rsync
+          ansible.builtin.copy:
+            src: "{{ ansible_ssh_private_key_file }}"
+            dest: "/tmp/vagrant_rsync_key"
+            mode: '0600'
+          when: db_role == 'slave' and not wp_content_check.stat.exists
+
+        - name: Распаковка WordPress из локального архива
+          unarchive:
+            src: "/opt/wordpress_latest-ru_RU.tar.gz"
+            dest: "{{ wp_dir }}"
+            remote_src: yes
+            owner: www-data
+            group: www-data
+            extra_opts: ["--strip-components=1"]
+            creates: "{{ wp_dir }}/wp-includes/version.php"
+
+        - name: Проверка, восстановлен ли demo wp-content на Master
+          ansible.builtin.stat:
+            path: "{{ wp_demo_content_marker }}"
+          register: wp_demo_content_check
+          when: db_role == 'master' and wp_demo_restore_enabled | bool
+
+        - name: Восстановление demo wp-content на Master
+          ansible.builtin.unarchive:
+            src: "{{ wp_demo_content_src }}"
+            dest: "{{ wp_dir }}"
+            owner: www-data
+            group: www-data
+          when: >
+            db_role == 'master'
+            and wp_demo_restore_enabled | bool
+            and not wp_demo_content_check.stat.exists
+
+        - name: Создание маркера восстановления demo wp-content
+          ansible.builtin.file:
+            path: "{{ wp_demo_content_marker }}"
+            state: touch
+            owner: root
+            group: root
+            mode: '0644'
+          when: >
+            db_role == 'master'
+            and wp_demo_restore_enabled | bool
+            and not wp_demo_content_check.stat.exists
+
+        # Забираем wp-content с Master по внутренней сети 10.10.10.x
+        - name: Синхронизация wp-content с Master (только Slave)
+          ansible.builtin.command: >
+            rsync -avz --delete --rsync-path="sudo rsync"
+            -e "ssh -i /tmp/vagrant_rsync_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+            vagrant@{{ master_ip }}:{{ wp_dir }}/wp-content/ {{ wp_dir }}/wp-content/
+          when: db_role == 'slave' and not wp_content_check.stat.exists
+
+        # Маркер идемпотентности: отличие «распаковали архив» от «синхронизировали с Master»
+        - name: Создание маркера синхронизации wp-content
+          ansible.builtin.file:
+            path: "{{ wp_content_sync_marker }}"
+            state: touch
+            owner: root
+            group: root
+            mode: '0644'
+          when: db_role == 'slave' and not wp_content_check.stat.exists
+
+        - name: Удаление временного SSH-ключа с Slave
+          ansible.builtin.file:
+            path: "/tmp/vagrant_rsync_key"
+            state: absent
+          when: db_role == 'slave' and not wp_content_check.stat.exists
+
+        - name: Генерация wp-config.php
+          template:
+            src: templates/wordpress/wp-config.php.j2
+            dest: "{{ wp_dir }}/wp-config.php"
+            owner: www-data
+            group: www-data
+            mode: '0640'
+
+    # =============================================================================
+    # 4. PHP-FPM — конфигурация
+    # =============================================================================
+    - name: "4. PHP-FPM — конфигурация"
+      block:
+        - name: Настройка PHP-FPM пула для WordPress
+          template:
+            src: templates/php-fpm/php-fpm-wordpress.conf.j2
+            dest: /etc/php/8.1/fpm/pool.d/wordpress.conf
+            owner: root
+            group: root
+            mode: '0644'
+          notify: Restart PHP-FPM
+
+        - name: Отключение дефолтного PHP-FPM пула
+          file:
+            path: /etc/php/8.1/fpm/pool.d/www.conf
+            state: absent
+          notify: Restart PHP-FPM
+
+    # =============================================================================
+    # 5. Nginx — конфигурация и запуск
+    # =============================================================================
+    - name: "5. Nginx — конфигурация и запуск"
+      block:
+        - name: Конфигурация Nginx для WordPress
+          template:
+            src: templates/nginx/nginx_backend.conf.j2
+            dest: /etc/nginx/sites-available/wordpress
+            mode: '0644'
+          notify: Restart Nginx Backend
+
+        - name: Активация сайта WordPress
+          file:
+            src: /etc/nginx/sites-available/wordpress
+            dest: /etc/nginx/sites-enabled/wordpress
+            state: link
+          notify: Restart Nginx Backend
+
+        - name: Удаление дефолтного сайта Nginx
+          file:
+            path: /etc/nginx/sites-enabled/default
+            state: absent
+          notify: Restart Nginx Backend
+
+        # Проверка конфига до старта — иначе nginx не поднимется, а задача «started» пройдёт тихо
+        - name: Проверка конфигурации Nginx
+          ansible.builtin.command: nginx -t
+          changed_when: false
+
+        - name: Применение перезапуска Nginx после смены конфигурации
+          ansible.builtin.meta: flush_handlers
+
+        - name: Запуск Nginx и ожидание порта 80
+          ansible.builtin.service:
+            name: nginx
+            state: started
+            enabled: yes
+
+        - name: Проверка доступности HTTP на backend
+          ansible.builtin.wait_for:
+            host: "{{ ansible_default_ipv4.address }}"
+            port: 80
+            timeout: 30
+
+    # =============================================================================
+    # 6. WordPress — права доступа
+    # =============================================================================
+    - name: "6. WordPress — права доступа"
+      block:
+        - name: Коррекция прав доступа WordPress
+          file:
+            path: "{{ wp_dir }}"
+            state: directory
+            owner: www-data
+            group: www-data
+            recurse: yes
+            mode: 'u+rw,g+rx,o-rwx'
+
+    # =============================================================================
+    # 7. MySQL — репликация (только Slave)
+    # =============================================================================
+    - name: "7. MySQL — репликация (только Slave)"
+      block:
+        # Одинаковый server-uuid в Vagrant box → репликация IO не стартует
+        - name: Пересоздание server_uuid на Slave (однократно)
+          ansible.builtin.shell: |
+            systemctl stop mysql
+            rm -f /var/lib/mysql/auto.cnf
+            systemctl start mysql
+          args:
+            creates: /etc/mysql/.slave-uuid-regenerated
+          when: db_role == 'slave'
+
+        - name: Маркер пересоздания server_uuid
+          ansible.builtin.file:
+            path: /etc/mysql/.slave-uuid-regenerated
+            state: touch
+            mode: '0644'
+          when: db_role == 'slave'
+
+        - name: Получение координат binlog на Master
+          ansible.builtin.shell: mysql --defaults-file=/root/.my.cnf -NBe "SHOW MASTER STATUS"
+          delegate_to: "{{ groups['backend_master'][0] }}"
+          run_once: true
+          register: master_binlog_raw
+          changed_when: false
+          failed_when: false
+
+        - name: Проверка статуса репликации MySQL
+          ansible.builtin.shell: >
+            mysql --defaults-file=/root/.my.cnf -e "SHOW SLAVE STATUS\G" 2>/dev/null |
+            grep -E "Slave_IO_Running|Slave_SQL_Running" | awk '{print $2}' | tr '\n' ' '
+          register: slave_status
+          changed_when: false
+          failed_when: false
+          when: db_role == 'slave'
+
+        # Сброс «битой» репликации (ошибка MTA / одинаковый UUID) перед повторной настройкой
+        - name: Сброс репликации MySQL на Slave при ошибке
+          ansible.builtin.shell: |
+            mysql --defaults-file=/root/.my.cnf -e "STOP SLAVE; RESET SLAVE ALL;"
+          when: >
+            db_role == 'slave'
+            and slave_status is defined
+            and "'Yes Yes' not in slave_status.stdout"
+
+        - name: Настройка и запуск репликации MySQL
+          ansible.builtin.shell: |
+            mysql --defaults-file=/root/.my.cnf -e "
+            CHANGE MASTER TO
+              MASTER_HOST='{{ master_ip }}',
+              MASTER_USER='{{ repl_user }}',
+              MASTER_PASSWORD='{{ repl_password }}',
+              MASTER_LOG_FILE='{{ hostvars[groups["backend_master"][0]].master_binlog_raw.stdout_lines[0].split()[0] }}',
+              MASTER_LOG_POS={{ hostvars[groups['backend_master'][0]].master_binlog_raw.stdout_lines[0].split()[1] | int }};
+            START SLAVE;
+            "
+          when: >
+            db_role == 'slave'
+            and slave_status is defined
+            and "'Yes Yes' not in slave_status.stdout"
+            and master_binlog_raw is defined
+            and master_binlog_raw.stdout_lines | default([]) | length > 0
+
+    # =============================================================================
+    # 8. MySQL — начальная синхронизация данных (Slave)
+    # =============================================================================
+    - name: "8. MySQL — начальная синхронизация данных (Slave)"
+      block:
+        # Проверяем wp_options: БД может существовать, но таблицы пустые (после сбоя репликации)
+        - name: Проверка таблиц WordPress на Slave
+          ansible.builtin.shell: >
+            mysql --defaults-file=/root/.my.cnf -NBe
+            "SELECT 1 FROM {{ db_wp_name }}.wp_options LIMIT 1"
+          register: slave_wp_tables_check
+          changed_when: false
+          failed_when: false
+          when: db_role == 'slave'
+
+        - name: Дамп БД WordPress на Master для начальной синхронизации Slave
+          ansible.builtin.shell: >
+            mysqldump --defaults-file=/root/.my.cnf --single-transaction {{ db_wp_name }}
+            > /tmp/wpress_slave_sync.sql
+          delegate_to: "{{ groups['backend_master'][0] }}"
+          run_once: true
+          when: >
+            hostvars[groups['backend_slave'][0]].slave_wp_tables_check.rc | default(1) != 0
+            and hostvars[groups['backend_master'][0]] is defined
+            and not hostvars[groups['backend_master'][0]].unreachable | default(false)
+
+        - name: Загрузка дампа с Master на control node
+          ansible.builtin.fetch:
+            src: /tmp/wpress_slave_sync.sql
+            dest: "{{ playbook_dir }}/.tmp/wpress_slave_sync.sql"
+            flat: true
+          delegate_to: "{{ groups['backend_master'][0] }}"
+          run_once: true
+          when: >
+            hostvars[groups['backend_slave'][0]].slave_wp_tables_check.rc | default(1) != 0
+            and hostvars[groups['backend_master'][0]] is defined
+            and not hostvars[groups['backend_master'][0]].unreachable | default(false)
+
+        - name: Копирование дампа на Slave
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/.tmp/wpress_slave_sync.sql"
+            dest: /tmp/wpress_slave_sync.sql
+            mode: '0600'
+          when: db_role == 'slave' and slave_wp_tables_check.rc != 0
+
+        - name: Создание БД WordPress на Slave перед импортом
+          community.mysql.mysql_db:
+            name: "{{ db_wp_name }}"
+            state: present
+            login_unix_socket: /run/mysqld/mysqld.sock
+          when: db_role == 'slave' and slave_wp_tables_check.rc != 0
+
+        - name: Импорт дампа WordPress на Slave
+          ansible.builtin.shell: mysql --defaults-file=/root/.my.cnf {{ db_wp_name }} < /tmp/wpress_slave_sync.sql
+          when: db_role == 'slave' and slave_wp_tables_check.rc != 0
+
+    # =============================================================================
+    # 9. MySQL — проверка репликации
+    # =============================================================================
+    - name: "9. MySQL — проверка репликации"
+      block:
+        - name: Финальная проверка статуса репликации на Slave
+          ansible.builtin.shell: >
+            mysql --defaults-file=/root/.my.cnf -e "SHOW SLAVE STATUS\G" 2>/dev/null |
+            awk '/Slave_IO_Running|Slave_SQL_Running/ {print $2}' | tr '\n' ' '
+          register: slave_replication_final
+          changed_when: false
+          when: db_role == 'slave'
+
+        - name: Репликация MySQL должна быть активна
+          ansible.builtin.assert:
+            that:
+              - "'Yes Yes' in slave_replication_final.stdout"
+            fail_msg: "MySQL replication is not healthy on slave: {{ slave_replication_final.stdout | default('no status') }}"
+          when: db_role == 'slave'
+
+        - name: Создание тестовой записи HA на Master
+          ansible.builtin.shell: |
+            mysql --defaults-file=/root/.my.cnf -e "
+            CREATE TABLE IF NOT EXISTS {{ db_wp_name }}.wp_ha_check (
+              id INT PRIMARY KEY,
+              marker VARCHAR(64) NOT NULL,
+              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            );
+            REPLACE INTO {{ db_wp_name }}.wp_ha_check (id, marker) VALUES (1, 'replication-ok');
+            "
+          delegate_to: "{{ groups['backend_master'][0] }}"
+          run_once: true
+          changed_when: false
+          when: >
+            hostvars[groups['backend_master'][0]] is defined
+            and not hostvars[groups['backend_master'][0]].unreachable | default(false)
+
+        - name: Ожидание тестовой записи HA на Slave
+          ansible.builtin.shell: |
+            for attempt in $(seq 1 30); do
+              marker=$(mysql --defaults-file=/root/.my.cnf -NBe "SELECT marker FROM {{ db_wp_name }}.wp_ha_check WHERE id = 1" 2>/dev/null || true)
+              if [ "$marker" = "replication-ok" ]; then
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 1
+          changed_when: false
+          when: db_role == 'slave'
+
+    # =============================================================================
+    # 10. MySQL — пользователи для HA
+    # =============================================================================
+    - name: "10. MySQL — пользователи для HA"
+      block:
+        - name: Создание пользователя WordPress на Slave (локальный вход при отказе Master)
+          community.mysql.mysql_user:
+            name: "{{ db_wp_user }}"
+            password: "{{ db_wp_password }}"
+            priv: "{{ db_wp_name }}.*:ALL"
+            host: "%"
+            login_unix_socket: /run/mysqld/mysqld.sock
+            state: present
+            column_case_sensitive: false
+          when: db_role == 'slave'
+
+        # Root с peer-IP для автоматического mysqldump между узлами (см. wp-ha-db-sync)
+        - name: Разрешение root MySQL с peer-узла для HA-синхронизации
+          community.mysql.mysql_user:
+            name: root
+            password: "{{ db_root_password }}"
+            host: "{{ slave_ip if db_role == 'master' else master_ip }}"
+            priv: "*.*:ALL,GRANT"
+            login_unix_socket: /run/mysqld/mysqld.sock
+            state: present
+            column_case_sensitive: false
+
+    # =============================================================================
+    # 11. MySQL — автосинхронизация (только Master)
+    # =============================================================================
+    - name: "11. MySQL — автосинхронизация (только Master)"
+      block:
+        - name: Скрипт автовыравнивания БД WordPress
+          ansible.builtin.template:
+            src: templates/mysql/wp-ha-db-sync.sh.j2
+            dest: /usr/local/bin/wp-ha-db-sync.sh
+            mode: '0755'
+          when: db_role == 'master'
+
+        - name: Systemd unit автосинхронизации БД
+          ansible.builtin.template:
+            src: templates/mysql/wp-ha-db-sync.{{ item }}.j2
+            dest: "/etc/systemd/system/wp-ha-db-sync.{{ item }}"
+            mode: '0644'
+          loop: [service, timer]
+          when: db_role == 'master'
+          notify: Reload systemd
+
+        - name: Включение таймера автосинхронизации БД
+          ansible.builtin.systemd:
+            name: wp-ha-db-sync.timer
+            state: started
+            enabled: yes
+            daemon_reload: yes
+          when: db_role == 'master'
+
+    # =============================================================================
+    # 12. Restic Client
+    # =============================================================================
+    - name: "12. Restic — клиентский backup backend"
+      block:
+        - name: Размещение файла пароля Restic
+          copy:
+            content: "{{ restic_password }}"
+            dest: /etc/restic_password
+            owner: root
+            group: root
+            mode: '0400'
+
+        - name: Инициализация Restic-репозитория backend
+          shell: |
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" snapshots >/dev/null 2>&1 ||
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" init
+          register: restic_init_backend
+          changed_when: "'created restic repository' in restic_init_backend.stdout"
+          failed_when: false
+
+        - name: Генерация скрипта бэкапа
+          template:
+            src: "templates/restic/restic_backup_{{ db_role }}.sh.j2"
+            dest: "/usr/local/bin/restic_backup_{{ restic_label }}.sh"
+            mode: '0755'
+
+        - name: Развертывание systemd-юнитов Restic
+          template:
+            src: "templates/restic/restic-backup.{{ item }}.j2"
+            dest: "/etc/systemd/system/restic-backup-{{ restic_label }}.{{ item }}"
+            owner: root
+            group: root
+            mode: '0644'
+          loop: [service, timer]
+          notify: Reload systemd
+
+        - name: Активация таймера Restic
+          systemd:
+            name: "restic-backup-{{ restic_label }}.timer"
+            state: started
+            enabled: yes
+            daemon_reload: yes
+
+    # =============================================================================
+    # 13. PHP-FPM — запуск сервиса
+    # =============================================================================
+    - name: "13. PHP-FPM — запуск сервиса"
+      block:
+        - name: Активация PHP-FPM
+          ansible.builtin.service:
+            name: php8.1-fpm
+            state: started
+            enabled: yes
+
+  handlers:
+    - name: Restart MySQL
+      service: { name: mysql, state: restarted }
+    - name: Restart PHP-FPM
+      service: { name: php8.1-fpm, state: restarted }
+    - name: Restart Nginx Backend
+      service: { name: nginx, state: restarted }
+    - name: Reload systemd
+      systemd: { daemon_reload: yes }

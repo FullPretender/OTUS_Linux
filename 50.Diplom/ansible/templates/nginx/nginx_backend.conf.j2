@@ -1,0 +1,29 @@
+server {
+    # listen на всех интерфейсах: bind только на 10.10.10.x падает (EADDRNOTAVAILABLE),
+    # если internal-сеть VirtualBox ещё не поднята при старте nginx
+    listen 80;
+    server_name _;
+    root {{ wp_dir }};
+    index index.php index.html;
+
+    client_max_body_size 64M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.1-wordpress.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+
+    location = /wp-config.php {
+        deny all;
+    }
+}

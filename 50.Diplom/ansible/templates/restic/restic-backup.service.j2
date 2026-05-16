@@ -1,0 +1,9 @@
+[Unit]
+Description=Restic Backup {{ restic_label }} Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/restic_backup_{{ restic_label }}.sh
+User=root

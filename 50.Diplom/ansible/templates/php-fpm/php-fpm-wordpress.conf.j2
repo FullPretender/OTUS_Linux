@@ -1,0 +1,20 @@
+[wordpress]
+user = www-data
+group = www-data
+listen = /run/php/php8.1-wordpress.sock
+listen.owner = www-data
+listen.group = www-data
+listen.mode = 0660
+
+pm = dynamic
+pm.max_children = 5
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 3
+
+php_value[upload_max_filesize] = 64M
+php_value[post_max_size] = 64M
+php_value[memory_limit] = 256M
+php_value[max_execution_time] = 120
+php_value[max_input_time] = 60
+php_value[display_errors] = Off

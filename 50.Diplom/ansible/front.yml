@@ -1,0 +1,145 @@
+---
+- name: Настройка Frontend (Nginx LB + Self-signed SSL + UFW + Restic Client)
+  hosts: frontend
+  become: yes
+
+  tasks:
+    # =============================================================================
+    # 1. SSL-сертификат (self-signed)
+    # =============================================================================
+    - name: "1. SSL — самоподписанный сертификат"
+      block:
+        - name: Создание директории для SSL-сертификатов
+          file:
+            path: "/etc/ssl/private"
+            state: directory
+            mode: '0755'
+            owner: root
+            group: root
+
+        - name: Генерация самоподписанного SSL-сертификата (для lab-среды)
+          command: >
+            openssl req -x509 -nodes -days 365 -newkey rsa:2048
+            -keyout /etc/ssl/private/lab.key
+            -out /etc/ssl/certs/lab.crt
+            -subj "/C=RU/ST=Moscow/L=Moscow/O=OTUS/CN={{ domain_name }}"
+          args:
+            creates: "/etc/ssl/certs/lab.crt"
+
+    # =============================================================================
+    # 2. Nginx
+    # =============================================================================
+    - name: "2. Nginx — конфигурация и запуск"
+      block:
+        - name: Генерация Nginx upstream
+          template:
+            src: templates/nginx/nginx_upstream.j2
+            dest: /etc/nginx/conf.d/upstream_backends.conf
+            mode: '0644'
+          notify: Restart Nginx
+
+        - name: Генерация основной конфигурации Nginx
+          template:
+            src: templates/nginx/nginx_frontend.conf.j2
+            dest: /etc/nginx/sites-available/frontend
+            mode: '0644'
+          notify: Restart Nginx
+
+        - name: Активация сайта Nginx
+          file:
+            src: /etc/nginx/sites-available/frontend
+            dest: /etc/nginx/sites-enabled/frontend
+            state: link
+
+        - name: Удаление дефолтного сайта Nginx
+          file:
+            path: /etc/nginx/sites-enabled/default
+            state: absent
+
+        - name: Тест конфигурации Nginx
+          command: nginx -t
+          changed_when: false
+
+        - name: Активация и запуск Nginx
+          service:
+            name: nginx
+            state: started
+            enabled: yes
+          notify: Restart Nginx
+
+        - name: Применение перезапуска Nginx перед проверками
+          ansible.builtin.meta: flush_handlers
+
+        - name: Проверка доступности backend-узлов с frontend
+          ansible.builtin.wait_for:
+            host: "{{ item }}"
+            port: 80
+            timeout: 30
+          loop: "{{ backend_ips }}"
+
+        - name: Ожидание порта HTTPS на frontend
+          ansible.builtin.wait_for:
+            port: 443
+            timeout: 30
+
+        - name: Проверка локального HTTPS frontend
+          ansible.builtin.uri:
+            url: https://127.0.0.1/
+            validate_certs: false
+            status_code: [200, 301, 302]
+            follow_redirects: none
+          changed_when: false
+
+    # =============================================================================
+    # 3. Restic Client
+    # =============================================================================
+    - name: "3. Restic — клиентский backup frontend"
+      block:
+        - name: Размещение файла пароля Restic
+          copy:
+            content: "{{ restic_password }}"
+            dest: /etc/restic_password
+            owner: root
+            group: root
+            mode: '0400'
+
+        - name: Инициализация Restic-репозитория frontend
+          shell: |
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" snapshots >/dev/null 2>&1 ||
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" init
+          register: restic_init_frontend
+          changed_when: "'created restic repository' in restic_init_frontend.stdout"
+          failed_when: false
+
+        - name: Генерация скрипта бэкапа Restic
+          template:
+            src: templates/restic/restic_backup.sh.j2
+            dest: /usr/local/bin/restic_backup_frontend.sh
+            mode: '0755'
+
+        - name: Развертывание systemd-юнитов Restic
+          template:
+            src: "templates/restic/restic-backup.{{ item }}.j2"
+            dest: "/etc/systemd/system/restic-backup-frontend.{{ item }}"
+            owner: root
+            group: root
+            mode: '0644'
+          loop: [service, timer]
+          notify: Reload systemd
+
+        - name: Активация таймера Restic
+          systemd:
+            name: restic-backup-frontend.timer
+            state: started
+            enabled: yes
+            daemon_reload: yes
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

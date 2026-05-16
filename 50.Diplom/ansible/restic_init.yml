@@ -1,0 +1,20 @@
+---
+- name: Инициализация Restic-репозиториев после запуска Rest Server
+  hosts: frontend:backend
+  become: yes
+  serial: 1
+
+  tasks:
+    - name: Ожидание Rest Server
+      ansible.builtin.wait_for:
+        host: "{{ monitoring_service_ip }}"
+        port: 8000
+        timeout: 120
+
+    - name: Инициализация Restic-репозитория
+      shell: |
+        RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" snapshots >/dev/null 2>&1 ||
+        RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" init
+      register: restic_init
+      changed_when: "'created restic repository' in restic_init.stdout"
+      failed_when: restic_init.rc != 0

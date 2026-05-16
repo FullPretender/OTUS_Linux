@@ -1,0 +1,160 @@
+/*
+Theme Name: Demo Forum Theme
+Theme URI: https://wordpress.org/themes/
+Author: OTUS Linux
+Description: Simple responsive theme for the WordPress demo forum.
+Version: 1.0.0
+Requires at least: 6.0
+Tested up to: 6.6
+Requires PHP: 8.1
+License: GPL-2.0-or-later
+Text Domain: demo-forum-theme
+*/
+
+:root {
+    color-scheme: light;
+    --bg: #f5f7fb;
+    --panel: #ffffff;
+    --text: #162033;
+    --muted: #667085;
+    --accent: #2563eb;
+    --accent-dark: #1e40af;
+    --border: #d9e1f2;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+}
+
+a {
+    color: var(--accent);
+}
+
+.site-header {
+    background: linear-gradient(135deg, #172554, #2563eb);
+    color: #ffffff;
+    padding: 56px 24px;
+}
+
+.site-header-inner,
+.site-main,
+.site-footer {
+    margin: 0 auto;
+    max-width: 1120px;
+}
+
+.site-title {
+    font-size: clamp(32px, 6vw, 56px);
+    line-height: 1;
+    margin: 0 0 16px;
+}
+
+.site-tagline {
+    font-size: 20px;
+    margin: 0;
+    max-width: 720px;
+    opacity: 0.9;
+}
+
+.site-main {
+    padding: 40px 24px;
+}
+
+.content-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+    padding: 32px;
+}
+
+.demo-forum-grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.8fr);
+}
+
+.demo-forum-card,
+.demo-forum-form,
+.demo-forum-notice {
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 20px;
+}
+
+.demo-forum-card {
+    margin-bottom: 16px;
+}
+
+.demo-forum-card h3,
+.demo-forum-form h2,
+.demo-forum-list h2 {
+    margin-top: 0;
+}
+
+.demo-forum-card span {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+.demo-forum-notice {
+    background: #dcfce7;
+    border-color: #86efac;
+    margin-bottom: 24px;
+}
+
+.demo-forum-form {
+    align-self: start;
+    background: #f8fbff;
+}
+
+.demo-forum-form label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 16px;
+}
+
+.demo-forum-form input,
+.demo-forum-form textarea {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: block;
+    font: inherit;
+    margin-top: 8px;
+    padding: 12px;
+    width: 100%;
+}
+
+.demo-forum-form button {
+    background: var(--accent);
+    border: 0;
+    border-radius: 999px;
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    padding: 12px 24px;
+}
+
+.demo-forum-form button:hover {
+    background: var(--accent-dark);
+}
+
+.site-footer {
+    color: var(--muted);
+    padding: 0 24px 32px;
+}
+
+@media (max-width: 860px) {
+    .demo-forum-grid {
+        grid-template-columns: 1fr;
+    }
+}

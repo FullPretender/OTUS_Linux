@@ -1,0 +1,53 @@
+#!/bin/bash
+# Автовыравнивание БД WordPress между Master и Slave (запускается по timer на Master)
+set -euo pipefail
+
+MASTER_IP="{{ master_ip }}"
+SLAVE_IP="{{ slave_ip }}"
+DB_NAME="{{ db_wp_name }}"
+MYSQL="mysql --defaults-file=/root/.my.cnf"
+DUMP="mysqldump --defaults-file=/root/.my.cnf --single-transaction --routines"
+LOCK="/run/lock/wp-ha-db-sync.lock"
+LOG="/var/log/wp-ha-db-sync.log"
+
+exec 9>"$LOCK"
+if ! flock -n 9; then
+  exit 0
+fi
+
+log() { echo "$(date -Is) $*" >> "$LOG"; }
+
+# Slave недоступен — ничего не делаем (идёт работа только на Master)
+if ! ping -c1 -W2 "$SLAVE_IP" &>/dev/null; then
+  exit 0
+fi
+if ! timeout 3 bash -c "echo >/dev/tcp/${SLAVE_IP}/3306" 2>/dev/null; then
+  exit 0
+fi
+
+count_local() {
+  $MYSQL -NBe "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}'" 2>/dev/null || echo 0
+}
+
+count_remote() {
+  $MYSQL -h "$SLAVE_IP" -NBe "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}'" 2>/dev/null || echo 0
+}
+
+LOCAL=$(count_local)
+REMOTE=$(count_remote)
+
+if [[ "$LOCAL" == "$REMOTE" ]]; then
+  exit 0
+fi
+
+log "Расхождение таблиц: master=${LOCAL} slave=${REMOTE}, синхронизация..."
+
+if [[ "$LOCAL" -gt "$REMOTE" ]]; then
+  log "Master → Slave"
+  $DUMP "$DB_NAME" | $MYSQL -h "$SLAVE_IP" "$DB_NAME"
+else
+  log "Slave → Master"
+  $DUMP -h "$SLAVE_IP" "$DB_NAME" | $MYSQL "$DB_NAME"
+fi
+
+log "Синхронизация завершена"

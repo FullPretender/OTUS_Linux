@@ -1,0 +1,16 @@
+[Unit]
+Description=Node Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=node_exporter
+Group=node_exporter
+ExecStart=/usr/local/bin/node_exporter \
+  --collector.textfile.directory=/var/lib/node_exporter/textfile_collector
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

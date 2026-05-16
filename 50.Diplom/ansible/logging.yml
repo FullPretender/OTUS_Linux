@@ -1,0 +1,77 @@
+---
+- name: Настройка Logging (Grafana Loki)
+  hosts: logging
+  become: yes
+
+  tasks:
+    - name: Создание пользователя loki
+      user:
+        name: loki
+        system: yes
+        shell: /usr/sbin/nologin
+        create_home: no
+
+    - name: Проверка наличия бинарника Loki
+      stat:
+        path: /usr/local/bin/loki
+      register: loki_stat
+
+    - name: Установить бинарник Loki из box-архива
+      shell: |
+        set -eu
+        archive="{{ box_artifacts_dir }}/loki.zip"
+        member=$(unzip -Z1 "$archive" | grep -E '(^|/)loki(-linux-amd64)?$' | head -n 1)
+        test -n "$member"
+        unzip -p "$archive" "$member" > /usr/local/bin/loki
+        chmod 0755 /usr/local/bin/loki
+      args:
+        creates: /usr/local/bin/loki
+      when: not loki_stat.stat.exists
+      notify: Restart Loki
+
+    - name: Создание директорий Loki
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: loki
+        group: loki
+        mode: '0755'
+      loop:
+        - /etc/loki
+        - /var/lib/loki
+        - /var/log/loki
+
+    - name: Развернуть loki.yml
+      template:
+        src: templates/loki/loki.yml.j2
+        dest: /etc/loki/loki.yml
+        owner: loki
+        group: loki
+        mode: '0640'
+      notify: Restart Loki
+
+    - name: Развернуть systemd-юнит Loki
+      template:
+        src: templates/loki/loki.service.j2
+        dest: /etc/systemd/system/loki.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Активация и запуск Loki
+      systemd:
+        name: loki.service
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart Loki
+      systemd:
+        name: loki.service
+        state: restarted
+        daemon_reload: yes
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

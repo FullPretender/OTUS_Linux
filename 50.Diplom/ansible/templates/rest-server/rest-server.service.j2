@@ -1,0 +1,18 @@
+[Unit]
+Description=Restic Backup Server
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=restic
+Group=restic
+ExecStart=/usr/local/bin/rest-server \
+  --path /srv/restic \
+  --listen :8000 \
+  --htpasswd-file /etc/restic/.htpasswd
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

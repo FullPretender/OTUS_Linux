@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'nodes'
+    static_configs:
+      - targets:
+        - '10.10.10.10:9100'  # Frontend Internal IP
+        - '10.10.10.20:9100'  # Master Internal IP
+        - '10.10.10.21:9100'  # Slave Internal IP
+        - '10.10.10.30:9100'  # Monitoring Internal IP
+        - '10.10.10.40:9100'  # Logging Internal IP

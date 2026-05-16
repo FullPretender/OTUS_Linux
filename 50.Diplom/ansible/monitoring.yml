@@ -1,0 +1,296 @@
+---
+- name: Установка Node Exporter на все узлы
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Создание пользователя node_exporter
+      user:
+        name: node_exporter
+        system: yes
+        shell: /usr/sbin/nologin
+        create_home: no
+
+    - name: Создать директорию textfile collector
+      file:
+        path: /var/lib/node_exporter/textfile_collector
+        state: directory
+        owner: node_exporter
+        group: node_exporter
+        mode: '0755'
+
+    - name: Проверка наличия бинарника Node Exporter
+      stat:
+        path: /usr/local/bin/node_exporter
+      register: node_exporter_stat
+
+    - name: Установить бинарник Node Exporter из box-архива
+      shell: |
+        set -eu
+        archive="{{ box_artifacts_dir }}/node_exporter.tar.gz"
+        member=$(tar -tzf "$archive" | grep '/node_exporter$' | head -n 1)
+        test -n "$member"
+        tar -xzf "$archive" -O "$member" > /usr/local/bin/node_exporter
+        chmod 0755 /usr/local/bin/node_exporter
+      args:
+        creates: /usr/local/bin/node_exporter
+      when: not node_exporter_stat.stat.exists
+      notify: Restart Node Exporter
+
+    - name: Развернуть systemd-юнит Node Exporter
+      template:
+        src: templates/node_exporter/node_exporter.service.j2
+        dest: /etc/systemd/system/node_exporter.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Активация и запуск Node Exporter
+      systemd:
+        name: node_exporter.service
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart Node Exporter
+      systemd: { name: node_exporter.service, state: restarted, daemon_reload: yes }
+    - name: Reload systemd
+      systemd: { daemon_reload: yes }
+
+- name: Настройка Monitoring (Prometheus + Grafana + Alertmanager + Restic Server)
+  hosts: monitoring
+  become: yes
+
+  tasks:
+
+    - name: Создание пользователей для сервисов
+      user:
+        name: "{{ item }}"
+        system: yes
+        shell: /usr/sbin/nologin
+        create_home: no
+      loop: [prometheus, alertmanager, restic]
+
+    - name: Проверка наличия бинарника Prometheus
+      stat:
+        path: /usr/local/bin/prometheus
+      register: prometheus_stat
+
+    - name: Установить бинарники Prometheus из box-архива
+      shell: |
+        set -eu
+        archive="{{ box_artifacts_dir }}/prometheus.tar.gz"
+        prom=$(tar -tzf "$archive" | grep '/prometheus$' | head -n 1)
+        tool=$(tar -tzf "$archive" | grep '/promtool$' | head -n 1)
+        test -n "$prom" && test -n "$tool"
+        tar -xzf "$archive" -O "$prom" > /usr/local/bin/prometheus
+        tar -xzf "$archive" -O "$tool" > /usr/local/bin/promtool
+        chmod 0755 /usr/local/bin/prometheus /usr/local/bin/promtool
+      args:
+        creates: /usr/local/bin/prometheus
+      when: not prometheus_stat.stat.exists
+      notify: Restart Prometheus
+
+    - name: Создать директории Prometheus
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+      loop: [/etc/prometheus, /var/lib/prometheus]
+
+    - name: Проверка наличия бинарника Alertmanager
+      stat:
+        path: /usr/local/bin/alertmanager
+      register: alertmanager_stat
+
+    - name: Установить бинарник Alertmanager из box-архива
+      shell: |
+        set -eu
+        archive="{{ box_artifacts_dir }}/alertmanager.tar.gz"
+        member=$(tar -tzf "$archive" | grep '/alertmanager$' | head -n 1)
+        test -n "$member"
+        tar -xzf "$archive" -O "$member" > /usr/local/bin/alertmanager
+        chmod 0755 /usr/local/bin/alertmanager
+      args:
+        creates: /usr/local/bin/alertmanager
+      when: not alertmanager_stat.stat.exists
+      notify: Restart Alertmanager
+
+    - name: Создать директории Alertmanager
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: alertmanager
+        group: alertmanager
+        mode: '0755'
+      loop: [/etc/alertmanager, /var/lib/alertmanager]
+
+    - name: Развернуть prometheus.yml
+      template:
+        src: templates/prometheus/prometheus.yml.j2
+        dest: /etc/prometheus/prometheus.yml
+        owner: prometheus
+        group: prometheus
+        mode: '0644'
+      notify: Restart Prometheus
+
+    - name: Развернуть alert_rules.yml
+      template:
+        src: templates/prometheus/alert_rules.yml.j2
+        dest: /etc/prometheus/alert_rules.yml
+        owner: prometheus
+        group: prometheus
+        mode: '0644'
+      notify: Restart Prometheus
+
+    - name: Развернуть alertmanager.yml
+      template:
+        src: templates/alertmanager/alertmanager.yml.j2
+        dest: /etc/alertmanager/alertmanager.yml
+        owner: alertmanager
+        group: alertmanager
+        mode: '0644'
+      notify: Restart Alertmanager
+
+    - name: Развернуть grafana.ini
+      template:
+        src: templates/grafana/grafana.ini.j2
+        dest: /etc/grafana/grafana.ini
+        owner: root
+        group: grafana
+        mode: '0640'
+      notify: Restart Grafana
+
+    - name: Создать директории provisioning Grafana
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: grafana
+        mode: '0755'
+      loop: [/etc/grafana/provisioning/datasources, /etc/grafana/provisioning/dashboards]
+
+    - name: Создать директорию Grafana dashboards
+      file:
+        path: /var/lib/grafana/dashboards
+        state: directory
+        owner: grafana
+        group: grafana
+        mode: '0755'
+
+    - name: Развернуть datasource Prometheus+Loki для Grafana
+      template:
+        src: templates/grafana/grafana-datasources.yml.j2
+        dest: /etc/grafana/provisioning/datasources/datasources.yml
+        owner: root
+        group: grafana
+        mode: '0640'
+      notify: Restart Grafana
+
+    - name: Развернуть provider dashboards для Grafana
+      template:
+        src: templates/grafana/grafana-dashboards.yml.j2
+        dest: /etc/grafana/provisioning/dashboards/dashboards.yml
+        owner: root
+        group: grafana
+        mode: '0640'
+      notify: Restart Grafana
+
+    - name: Развернуть dashboard инфраструктуры
+      template:
+        src: templates/grafana/node-overview-dashboard.json.j2
+        dest: /var/lib/grafana/dashboards/node-overview-dashboard.json
+        owner: grafana
+        group: grafana
+        mode: '0644'
+      notify: Restart Grafana
+
+    - name: Проверка наличия бинарника Rest Server
+      stat:
+        path: /usr/local/bin/rest-server
+      register: rest_server_stat
+
+    - name: Установить бинарник Rest Server из box-архива
+      shell: |
+        set -eu
+        archive="{{ box_artifacts_dir }}/rest-server.tar.gz"
+        member=$(tar -tzf "$archive" | grep '/rest-server$' | head -n 1)
+        test -n "$member"
+        tar -xzf "$archive" -O "$member" > /usr/local/bin/rest-server
+        chmod 0755 /usr/local/bin/rest-server
+      args:
+        creates: /usr/local/bin/rest-server
+      when: not rest_server_stat.stat.exists
+      notify: Restart Rest Server
+
+    - name: Создать директорию для репозиториев Restic
+      file:
+        path: "/srv/restic"
+        state: directory
+        owner: restic
+        group: restic
+        mode: '0755'
+
+    - name: Создать поддиректории для клиентов
+      file:
+        path: "/srv/restic/{{ item }}"
+        state: directory
+        owner: restic
+        group: restic
+        mode: '0700'
+      loop: "{{ restic_repos }}"
+
+    - name: Создать директорию для htpasswd
+      file:
+        path: "/etc/restic"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Создать файл паролей htpasswd для Rest Server
+      shell: "htpasswd -Bbc /etc/restic/.htpasswd '{{ restic_server_user }}' '{{ restic_server_password }}'"
+      args:
+        creates: /etc/restic/.htpasswd
+      notify: Restart Rest Server
+
+    - name: Развернуть systemd-юниты сервисов
+      template:
+        src: "templates/{{ item }}/{{ item }}.service.j2"
+        dest: "/etc/systemd/system/{{ item }}.service"
+        owner: root
+        group: root
+        mode: '0644'
+      loop: [prometheus, alertmanager, rest-server]
+      notify: Reload systemd
+
+    - name: Активация и запуск сервисов мониторинга
+      systemd:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+        daemon_reload: yes
+      loop:
+        - prometheus.service
+        - alertmanager.service
+        - rest-server.service
+        - grafana-server.service
+
+  handlers:
+    - name: Reload UFW
+      command: ufw reload
+      changed_when: false
+    - name: Restart Prometheus
+      systemd: { name: prometheus.service, state: restarted, daemon_reload: yes }
+    - name: Restart Alertmanager
+      systemd: { name: alertmanager.service, state: restarted, daemon_reload: yes }
+    - name: Restart Grafana
+      systemd: { name: grafana-server.service, state: restarted, daemon_reload: yes }
+    - name: Restart Rest Server
+      systemd: { name: rest-server.service, state: restarted, daemon_reload: yes }
+    - name: Reload systemd
+      systemd: { daemon_reload: yes }
