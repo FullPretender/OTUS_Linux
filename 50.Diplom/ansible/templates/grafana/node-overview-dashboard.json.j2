@@ -25,9 +25,7 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
+          "unit": "short",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -41,13 +39,15 @@
               }
             ]
           },
-          "unit": "short"
+          "color": {
+            "mode": "thresholds"
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
+        "h": 5,
+        "w": 8,
         "x": 0,
         "y": 0
       },
@@ -70,7 +70,7 @@
       "pluginVersion": "13.0.1",
       "targets": [
         {
-          "expr": "sum(up{job=\"nodes\"})",
+          "expr": "sum(up{job=\"nodes\",node!=\"\"})",
           "legendFormat": "nodes up",
           "refId": "A"
         }
@@ -82,10 +82,129 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "max": 100,
-          "min": 0,
+          "unit": "short",
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 8,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.1",
+      "targets": [
+        {
+          "expr": "sum(1 - up{job=\"nodes\",node!=\"\"})",
+          "legendFormat": "nodes down",
+          "refId": "A"
+        }
+      ],
+      "title": "Nodes Down",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 3
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.1",
+      "targets": [
+        {
+          "expr": "count(ALERTS{alertstate=\"firing\",node!=\"\"}) or vector(0)",
+          "legendFormat": "firing alerts",
+          "refId": "A"
+        }
+      ],
+      "title": "Firing Alerts",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
             "steps": [
               {
                 "color": "green",
@@ -100,18 +219,17 @@
                 "value": 90
               }
             ]
-          },
-          "unit": "percent"
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 6,
-        "y": 0
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 5
       },
-      "id": 2,
+      "id": 5,
       "options": {
         "displayMode": "lcd",
         "legend": {
@@ -120,8 +238,8 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
+        "maxVizHeight": 420,
+        "minVizHeight": 24,
         "minVizWidth": 8,
         "namePlacement": "auto",
         "orientation": "horizontal",
@@ -139,8 +257,8 @@
       "pluginVersion": "13.0.1",
       "targets": [
         {
-          "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %}",
+          "expr": "((100 - (avg by(node) (rate(node_cpu_seconds_total{node!=\"\",mode=\"idle\"}[2m])) * 100)) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
           "refId": "A"
         }
       ],
@@ -151,10 +269,11 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "max": 100,
+          "unit": "percent",
           "min": 0,
+          "max": 100,
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
             "steps": [
               {
                 "color": "green",
@@ -169,18 +288,17 @@
                 "value": 90
               }
             ]
-          },
-          "unit": "percent"
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 12,
-        "y": 0
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 5
       },
-      "id": 3,
+      "id": 6,
       "options": {
         "displayMode": "lcd",
         "legend": {
@@ -189,8 +307,8 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
+        "maxVizHeight": 420,
+        "minVizHeight": 24,
         "minVizWidth": 8,
         "namePlacement": "auto",
         "orientation": "horizontal",
@@ -208,8 +326,8 @@
       "pluginVersion": "13.0.1",
       "targets": [
         {
-          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %}",
+          "expr": "(max by(node) ((1 - (node_memory_MemAvailable_bytes{node!=\"\"} / node_memory_MemTotal_bytes{node!=\"\"})) * 100) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
           "refId": "A"
         }
       ],
@@ -220,10 +338,11 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "max": 100,
+          "unit": "percent",
           "min": 0,
+          "max": 100,
           "thresholds": {
-            "mode": "percentage",
+            "mode": "absolute",
             "steps": [
               {
                 "color": "green",
@@ -238,18 +357,17 @@
                 "value": 90
               }
             ]
-          },
-          "unit": "percent"
+          }
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 6,
-        "x": 18,
-        "y": 0
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 5
       },
-      "id": 4,
+      "id": 7,
       "options": {
         "displayMode": "lcd",
         "legend": {
@@ -258,8 +376,8 @@
           "placement": "bottom",
           "showLegend": true
         },
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
+        "maxVizHeight": 420,
+        "minVizHeight": 24,
         "minVizWidth": 8,
         "namePlacement": "auto",
         "orientation": "horizontal",
@@ -277,19 +395,154 @@
       "pluginVersion": "13.0.1",
       "targets": [
         {
-          "expr": "(1 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})) * 100",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %}",
+          "expr": "(max by(node) ((1 - (node_filesystem_avail_bytes{node!=\"\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{node!=\"\",mountpoint=\"/\",fstype!~\"tmpfs|overlay\"})) * 100) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
           "refId": "A"
         }
       ],
-      "title": "Root Disk Usage",
+      "title": "Root Disk Used",
       "type": "bargauge"
     },
     {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "unit": "percent"
+          "unit": "dthms",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "id": 9,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.1",
+      "targets": [
+        {
+          "expr": "(max by(node) (time() - node_boot_time_seconds{node!=\"\"}) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
+          "refId": "A"
+        }
+      ],
+      "title": "Uptime",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "id": 10,
+      "options": {
+        "displayMode": "lcd",
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "maxVizHeight": 420,
+        "minVizHeight": 24,
+        "minVizWidth": 8,
+        "namePlacement": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "pluginVersion": "13.0.1",
+      "targets": [
+        {
+          "expr": "(max by(node) (node_load1{node!=\"\"}) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
+          "refId": "A"
+        }
+      ],
+      "title": "Load Average 1m",
+      "type": "bargauge"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -297,9 +550,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 4
+        "y": 18
       },
-      "id": 5,
+      "id": 11,
       "options": {
         "legend": {
           "calcs": [
@@ -318,8 +571,8 @@
       },
       "targets": [
         {
-          "expr": "100 - (avg by(instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %}",
+          "expr": "((100 - (avg by(node) (rate(node_cpu_seconds_total{node!=\"\",mode=\"idle\"}[2m])) * 100)) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
           "refId": "A"
         }
       ],
@@ -330,7 +583,24 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "unit": "percent"
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -338,9 +608,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 4
+        "y": 18
       },
-      "id": 6,
+      "id": 12,
       "options": {
         "legend": {
           "calcs": [
@@ -359,8 +629,8 @@
       },
       "targets": [
         {
-          "expr": "(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %}",
+          "expr": "(max by(node) ((1 - (node_memory_MemAvailable_bytes{node!=\"\"} / node_memory_MemTotal_bytes{node!=\"\"})) * 100) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
           "refId": "A"
         }
       ],
@@ -379,54 +649,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 26
       },
-      "id": 7,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "expr": "sum by(instance) (rate(node_network_receive_bytes_total{device!~\"lo\"}[5m]))",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %} RX",
-          "refId": "A"
-        },
-        {
-          "expr": "sum by(instance) (rate(node_network_transmit_bytes_total{device!~\"lo\"}[5m]))",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %} TX",
-          "refId": "B"
-        }
-      ],
-      "title": "Network Traffic",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 12
-      },
-      "id": 8,
+      "id": 13,
       "options": {
         "legend": {
           "calcs": [
@@ -445,17 +670,63 @@
       },
       "targets": [
         {
-          "expr": "node_load1",
-          "legendFormat": "{% raw %}{{ instance }}{% endraw %}",
+          "expr": "(sum by(node) (rate(node_network_receive_bytes_total{node!=\"\",device!~\"lo\"}[2m])) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }} RX{% endraw %}",
+          "refId": "A"
+        },
+        {
+          "expr": "(sum by(node) (rate(node_network_transmit_bytes_total{node!=\"\",device!~\"lo\"}[2m])) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }} TX{% endraw %}",
+          "refId": "B"
+        }
+      ],
+      "title": "Network Traffic",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "id": 14,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "(max by(node) (node_load1{node!=\"\"}) * on(node) max by(node) (up{job=\"nodes\",node!=\"\"})) or on(node) (0 * max by(node) (up{job=\"nodes\",node!=\"\"}))",
+          "legendFormat": "{% raw %}{{ node }}{% endraw %}",
           "refId": "A"
         }
       ],
-      "title": "Load Average 1m",
+      "title": "Load Average Over Time",
       "type": "timeseries"
     }
   ],
   "preload": false,
-  "refresh": "15s",
+  "refresh": "10s",
   "schemaVersion": 41,
   "tags": [
     "prometheus",
@@ -466,12 +737,12 @@
     "list": []
   },
   "time": {
-    "from": "now-30m",
+    "from": "now-15m",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "browser",
   "title": "OTUS Infrastructure Overview",
   "uid": "otus-infra-overview",
-  "version": 1
+  "version": 9
 }

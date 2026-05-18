@@ -1,0 +1,121 @@
+---
+- name: Настройка Grafana Alloy на всех узлах
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Создание пользователя alloy
+      user:
+        name: alloy
+        system: yes
+        shell: /usr/sbin/nologin
+        create_home: no
+        groups: adm
+        append: yes
+
+    - name: Проверка наличия бинарника Alloy
+      stat:
+        path: /usr/local/bin/alloy
+      register: alloy_stat
+
+    - name: Установить бинарник Alloy из box-архива
+      shell: |
+        set -eu
+        archive="/opt/alloy.zip"
+        member=$(unzip -Z1 "$archive" | grep -E '(^|/)alloy(-linux-amd64)?$' | head -n 1)
+        test -n "$member"
+        unzip -p "$archive" "$member" > /usr/local/bin/alloy
+        chmod 0755 /usr/local/bin/alloy
+      args:
+        creates: /usr/local/bin/alloy
+      when: not alloy_stat.stat.exists
+      notify: Restart Alloy
+
+    - name: Создание директорий Alloy
+      file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: /etc/alloy, owner: root, group: root, mode: '0755' }
+        - { path: /var/lib/alloy, owner: alloy, group: alloy, mode: '0755' }
+
+    - name: Развернуть config.alloy
+      template:
+        src: templates/alloy/config.alloy.j2
+        dest: /etc/alloy/config.alloy
+        owner: root
+        group: alloy
+        mode: '0640'
+      notify: Restart Alloy
+
+    - name: Развернуть systemd-юнит Alloy
+      template:
+        src: templates/alloy/alloy.service.j2
+        dest: /etc/systemd/system/alloy.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Поиск PHP-FPM логов для Alloy
+      ansible.builtin.find:
+        paths: /var/log
+        patterns: "php*-fpm.log"
+        file_type: file
+      register: php_fpm_log_files
+
+    - name: Разрешить Alloy читать PHP-FPM логи
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        group: adm
+        mode: "g+r"
+      loop: "{{ php_fpm_log_files.files }}"
+      when: php_fpm_log_files.matched | default(0) | int > 0
+
+    - name: Поиск Grafana логов для Alloy
+      ansible.builtin.find:
+        paths: /var/log/grafana
+        patterns: "*.log"
+        file_type: file
+      register: grafana_log_files
+      failed_when: false
+
+    - name: Разрешить Alloy читать Grafana логи
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        group: adm
+        mode: "g+r"
+      loop: "{{ grafana_log_files.files | default([]) }}"
+      when: grafana_log_files.matched | default(0) | int > 0
+
+    - name: Сбор фактов о сервисах
+      ansible.builtin.service_facts:
+
+    - name: Отключить старый Promtail, если он установлен
+      systemd:
+        name: promtail.service
+        state: stopped
+        enabled: no
+        daemon_reload: yes
+      when: "'promtail.service' in ansible_facts.services"
+
+    - name: Активация и запуск Alloy
+      systemd:
+        name: alloy.service
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+  handlers:
+    - name: Restart Alloy
+      systemd:
+        name: alloy.service
+        state: restarted
+        daemon_reload: yes
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes

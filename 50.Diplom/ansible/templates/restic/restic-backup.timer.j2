@@ -1,10 +1,10 @@
 [Unit]
-Description=Run Restic Backup {{ restic_label }} Daily
+Description=Run Restic Backup {{ restic_label }} Hourly
 Requires=restic-backup-{{ restic_label }}.service
 
 [Timer]
-OnCalendar=daily
-RandomizedDelaySec=3600
+OnCalendar=hourly
+RandomizedDelaySec=300
 Persistent=true
 
 [Install]

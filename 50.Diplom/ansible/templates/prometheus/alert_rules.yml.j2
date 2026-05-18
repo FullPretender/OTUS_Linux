@@ -3,28 +3,29 @@ groups:
   - name: infrastructure_alerts
     rules:
       - alert: InstanceDown
-        expr: up == 0
-        for: 2m
+        expr: up{job="nodes",node!=""} == 0
+        for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "Host {{ $labels.instance }} is down"
-          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+          summary: "Host {{ $labels.node }} is down"
+          description: "{{ $labels.node }} ({{ $labels.role }}, {{ $labels.instance }}) has been down for more than 1 minute."
 
       - alert: HighDiskUsage
-        expr: (node_filesystem_avail_bytes / node_filesystem_size_bytes) * 100 < 15
+        expr: (node_filesystem_avail_bytes{node!="",mountpoint="/",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{node!="",mountpoint="/",fstype!~"tmpfs|overlay"}) * 100 < 15
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "High disk usage on {{ $labels.instance }}"
-          description: "Disk usage is above 85% on {{ $labels.instance }}."
+          summary: "High disk usage on {{ $labels.node }}"
+          description: "Root disk usage is above 85% on {{ $labels.node }} ({{ $labels.role }}, {{ $labels.instance }})."
 
       - alert: HighCPULoad
-        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        expr: 100 - (avg by(instance,node,role) (rate(node_cpu_seconds_total{node!="",mode="idle"}[2m])) * 100) > 90
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "High CPU load on {{ $labels.instance }}"
+          summary: "High CPU load on {{ $labels.node }}"
+          description: "CPU usage is above 90% on {{ $labels.node }} ({{ $labels.role }}, {{ $labels.instance }})."
 {% endraw %}

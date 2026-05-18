@@ -74,8 +74,16 @@
           ansible.builtin.wait_for:
             host: "{{ item }}"
             port: 80
-            timeout: 30
-          loop: "{{ backend_ips }}"
+            timeout: 5
+          loop: ["10.10.10.20", "10.10.10.21"]
+          register: backend_http_checks
+          failed_when: false
+
+        - name: Должен быть доступен хотя бы один backend
+          ansible.builtin.assert:
+            that:
+              - backend_http_checks.results | selectattr('failed', 'equalto', false) | list | length > 0
+            fail_msg: "No backend HTTP nodes are reachable from frontend"
 
         - name: Ожидание порта HTTPS на frontend
           ansible.builtin.wait_for:
@@ -105,8 +113,8 @@
 
         - name: Инициализация Restic-репозитория frontend
           shell: |
-            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" snapshots >/dev/null 2>&1 ||
-            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" init
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" snapshots >/dev/null 2>&1 ||
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" init
           register: restic_init_frontend
           changed_when: "'created restic repository' in restic_init_frontend.stdout"
           failed_when: false

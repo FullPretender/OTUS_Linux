@@ -1,13 +1,13 @@
 [Unit]
-Description=Promtail Log Collector
+Description=Grafana Alloy Log Collector
 Wants=network-online.target
 After=network-online.target
 
 [Service]
 Type=simple
-User=promtail
-Group=promtail
-ExecStart=/usr/local/bin/promtail -config.file=/etc/promtail/promtail.yml
+User=alloy
+Group=alloy
+ExecStart=/usr/local/bin/alloy run /etc/alloy/config.alloy --storage.path=/var/lib/alloy
 Restart=on-failure
 RestartSec=5
 

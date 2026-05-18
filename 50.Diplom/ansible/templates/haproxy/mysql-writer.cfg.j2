@@ -1,0 +1,19 @@
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    daemon
+    maxconn 256
+
+defaults
+    log global
+    mode tcp
+    option tcplog
+    timeout connect 2s
+    timeout client 60s
+    timeout server 60s
+
+listen wordpress_mysql_writer
+    bind 0.0.0.0:6033
+    default-server inter 2s fall 2 rise 1
+    server backend_master 10.10.10.20:3306 check
+    server backend_slave 10.10.10.21:3306 check backup

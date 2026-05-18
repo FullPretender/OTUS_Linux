@@ -1,8 +1,6 @@
 upstream backend_pool {
-    {# consistent: при падении узла клиенты перераспределяются на живой backend (ip_hash так не умеет) #}
-    hash $binary_remote_addr consistent;
-{% for ip in backend_ips %}
-    server {{ ip }} max_fails=1 fail_timeout=3s;
-{% endfor %}
+    least_conn;
+    server 10.10.10.20 max_fails=1 fail_timeout=3s;
+    server 10.10.10.21 max_fails=1 fail_timeout=3s;
     keepalive 16;
 }

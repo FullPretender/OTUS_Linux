@@ -1,3 +1,4 @@
 *.iso
 *.tar.gz
 .vagrant/
+.vault_pass

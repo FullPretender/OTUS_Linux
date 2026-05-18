@@ -8,6 +8,8 @@ Type=simple
 User=loki
 Group=loki
 ExecStart=/usr/local/bin/loki -config.file=/etc/loki/loki.yml
+StandardOutput=append:/var/log/loki/loki.log
+StandardError=append:/var/log/loki/loki.log
 Restart=on-failure
 RestartSec=5
 

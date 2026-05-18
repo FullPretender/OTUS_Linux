@@ -2,8 +2,8 @@
 # Автовыравнивание БД WordPress между Master и Slave (запускается по timer на Master)
 set -euo pipefail
 
-MASTER_IP="{{ master_ip }}"
-SLAVE_IP="{{ slave_ip }}"
+MASTER_IP="10.10.10.20"
+SLAVE_IP="10.10.10.21"
 DB_NAME="{{ db_wp_name }}"
 MYSQL="mysql --defaults-file=/root/.my.cnf"
 DUMP="mysqldump --defaults-file=/root/.my.cnf --single-transaction --routines"

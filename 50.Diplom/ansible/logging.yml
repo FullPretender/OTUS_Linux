@@ -19,7 +19,7 @@
     - name: Установить бинарник Loki из box-архива
       shell: |
         set -eu
-        archive="{{ box_artifacts_dir }}/loki.zip"
+        archive="/opt/loki.zip"
         member=$(unzip -Z1 "$archive" | grep -E '(^|/)loki(-linux-amd64)?$' | head -n 1)
         test -n "$member"
         unzip -p "$archive" "$member" > /usr/local/bin/loki
@@ -39,7 +39,16 @@
       loop:
         - /etc/loki
         - /var/lib/loki
+        - /var/lib/loki/compactor
         - /var/log/loki
+
+    - name: Создать log-файл Loki для централизованного сбора
+      file:
+        path: /var/log/loki/loki.log
+        state: touch
+        owner: loki
+        group: adm
+        mode: '0640'
 
     - name: Развернуть loki.yml
       template:

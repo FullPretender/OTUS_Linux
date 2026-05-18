@@ -1,9 +1,10 @@
 ---
 # Импорт плейбуков настройки отдельных хостов
+- import_playbook: ha_shared.yml
 - import_playbook: back.yml
 - import_playbook: front.yml
 - import_playbook: monitoring.yml
 - import_playbook: logging.yml
-- import_playbook: promtail.yml
+- import_playbook: alloy.yml
 - import_playbook: restic_init.yml
 - import_playbook: UFW.yml

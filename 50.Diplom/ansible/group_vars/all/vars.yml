@@ -1,0 +1,8 @@
+---
+restic_password: "{{ vault_restic_password }}"
+restic_server_password: "{{ vault_restic_server_password }}"
+db_root_password: "{{ vault_db_root_password }}"
+db_wp_password: "{{ vault_db_wp_password }}"
+repl_password: "{{ vault_repl_password }}"
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
+alertmanager_smtp_password: "{{ vault_alertmanager_smtp_password }}"

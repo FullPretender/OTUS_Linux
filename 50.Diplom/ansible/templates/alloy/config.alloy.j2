@@ -1,0 +1,38 @@
+{% if 'frontend' in group_names %}
+{% set alloy_host = 'frontend' %}
+{% elif 'backend_master' in group_names %}
+{% set alloy_host = 'backend-1' %}
+{% elif 'backend_slave' in group_names %}
+{% set alloy_host = 'backend-2' %}
+{% elif 'monitoring' in group_names %}
+{% set alloy_host = 'monitoring' %}
+{% elif 'logging' in group_names %}
+{% set alloy_host = 'logging' %}
+{% else %}
+{% set alloy_host = inventory_hostname %}
+{% endif %}
+
+loki.write "default" {
+  endpoint {
+    url = "http://10.10.10.40:3100/loki/api/v1/push"
+  }
+}
+
+local.file_match "logs" {
+  path_targets = [
+    { "__path__" = "/var/log/syslog", "job" = "system", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/auth.log", "job" = "system", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/kern.log", "job" = "system", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/ufw.log", "job" = "system", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/nginx/*.log", "job" = "nginx", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/mysql/*.log", "job" = "mysql", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/php*-fpm.log", "job" = "php-fpm", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/loki/*.log", "job" = "loki", "host" = "{{ alloy_host }}" },
+    { "__path__" = "/var/log/grafana/*.log", "job" = "grafana", "host" = "{{ alloy_host }}" },
+  ]
+}
+
+loki.source.file "logs" {
+  targets    = local.file_match.logs.targets
+  forward_to = [loki.write.default.receiver]
+}

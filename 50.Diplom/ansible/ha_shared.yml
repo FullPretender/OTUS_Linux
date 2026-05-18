@@ -1,0 +1,173 @@
+---
+- name: Настройка общего состояния WordPress (DB endpoint + wp-content)
+  hosts: logging
+  become: yes
+
+  tasks:
+    - name: Создание пользователя Restic
+      ansible.builtin.user:
+        name: restic
+        system: yes
+        shell: /usr/sbin/nologin
+        create_home: no
+
+    - name: Разрешение DB endpoint и NFS до монтирования backend-узлами
+      ansible.builtin.command: "ufw allow from 10.10.10.0/24 to any port {{ item }} proto tcp"
+      loop:
+        - "6033"
+        - "2049"
+        - "8000"
+      changed_when: false
+      failed_when: false
+
+    - name: Проверка наличия бинарника Rest Server
+      ansible.builtin.stat:
+        path: /usr/local/bin/rest-server
+      register: rest_server_stat
+
+    - name: Установить бинарник Rest Server из box-архива
+      ansible.builtin.shell: |
+        set -eu
+        archive="/opt/rest-server.tar.gz"
+        member=$(tar -tzf "$archive" | grep '/rest-server$' | head -n 1)
+        test -n "$member"
+        tar -xzf "$archive" -O "$member" > /usr/local/bin/rest-server
+        chmod 0755 /usr/local/bin/rest-server
+      args:
+        creates: /usr/local/bin/rest-server
+      when: not rest_server_stat.stat.exists
+      notify: Restart Rest Server
+
+    - name: Создать директорию для репозиториев Restic
+      ansible.builtin.file:
+        path: "/srv/restic"
+        state: directory
+        owner: restic
+        group: restic
+        mode: '0755'
+
+    - name: Создать поддиректории для клиентов Restic
+      ansible.builtin.file:
+        path: "/srv/restic/{{ item }}"
+        state: directory
+        owner: restic
+        group: restic
+        mode: '0700'
+      loop: ["frontend", "backend_master", "backend_slave"]
+
+    - name: Создать директорию для htpasswd Rest Server
+      ansible.builtin.file:
+        path: "/etc/restic"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Создать файл паролей htpasswd для Rest Server
+      ansible.builtin.shell: "htpasswd -Bbc /etc/restic/.htpasswd '{{ restic_server_user }}' '{{ restic_server_password }}'"
+      args:
+        creates: /etc/restic/.htpasswd
+      notify: Restart Rest Server
+
+    - name: Развернуть systemd-юнит Rest Server
+      ansible.builtin.template:
+        src: templates/rest-server/rest-server.service.j2
+        dest: /etc/systemd/system/rest-server.service
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload systemd
+
+    - name: Активация Rest Server
+      ansible.builtin.systemd:
+        name: rest-server.service
+        state: started
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Создание директории общего wp-content
+      ansible.builtin.file:
+        path: "/srv/wordpress/wp-content"
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0775'
+
+    - name: Создание директории drop-in exports для NFS
+      ansible.builtin.file:
+        path: /etc/exports.d
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Проверка наличия demo-темы в общем wp-content
+      ansible.builtin.stat:
+        path: "/srv/wordpress/wp-content/themes/demo-forum-theme/style.css"
+      register: shared_demo_theme
+
+    - name: Развёртывание demo wp-content (тема и плагин) в общий NFS export
+      ansible.builtin.copy:
+        src: "templates/wordpress/demo/wp-content/"
+        dest: "/srv/wordpress/wp-content/"
+        owner: www-data
+        group: www-data
+        mode: preserve
+      when: not shared_demo_theme.stat.exists
+
+    - name: Разрешение NFSv4 export для backend-сети
+      ansible.builtin.copy:
+        content: |
+          /srv/wordpress/wp-content 10.10.10.0/24(rw,sync,no_subtree_check,no_root_squash,fsid=10)
+        dest: /etc/exports.d/wordpress-wp-content.exports
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reload NFS exports
+
+    - name: Применение NFS exports
+      ansible.builtin.command: exportfs -ra
+      changed_when: false
+
+    - name: Активация NFS Server
+      ansible.builtin.systemd:
+        name: nfs-server.service
+        state: started
+        enabled: yes
+
+    - name: Развертывание HAProxy для стабильного DB endpoint
+      ansible.builtin.template:
+        src: templates/haproxy/mysql-writer.cfg.j2
+        dest: /etc/haproxy/haproxy.cfg
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart HAProxy
+
+    - name: Активация HAProxy
+      ansible.builtin.systemd:
+        name: haproxy.service
+        state: started
+        enabled: yes
+
+  handlers:
+    - name: Reload NFS exports
+      ansible.builtin.command: exportfs -ra
+      changed_when: false
+
+    - name: Restart HAProxy
+      ansible.builtin.systemd:
+        name: haproxy.service
+        state: restarted
+        enabled: yes
+
+    - name: Restart Rest Server
+      ansible.builtin.systemd:
+        name: rest-server.service
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: yes

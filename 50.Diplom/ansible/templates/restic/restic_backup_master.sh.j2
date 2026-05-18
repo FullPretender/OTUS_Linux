@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 export RESTIC_PASSWORD_FILE="/etc/restic_password"
-RESTIC_REPO="{{ restic_repo_path }}"
+RESTIC_REPO="rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}"
 DUMP_DIR="/tmp/mysql_backups"
 DATE=$(date +%F_%T)
 mkdir -p "$DUMP_DIR"
@@ -12,15 +12,15 @@ mysqldump --defaults-file=/root/.my.cnf --single-transaction {{ db_wp_name }} > 
 # 2. Инкрементальный бэкап Restic
 restic backup --repo "$RESTIC_REPO" --tag backend_master --exclude-caches \
   "$DUMP_DIR" \
-  "{{ wp_dir }}" \
+  "/var/www/wordpress" \
   /etc/php/8.1 \
   /etc/mysql/conf.d \
   /etc/mysql/mysql.conf.d \
   /etc/nginx \
   >> /var/log/restic_backup_master.log 2>&1
 
-# 3. Ротация снапшотов (7 дней, 4 недели)
-restic forget --repo "$RESTIC_REPO" --keep-daily 7 --keep-weekly 4 --prune
+# 3. Ротация снапшотов
+restic forget --repo "$RESTIC_REPO" --keep-hourly 24 --keep-daily 7 --keep-weekly 4 --prune
 
 # 4. Очистка старых локальных дампов
 find "$DUMP_DIR" -type f -name "*.sql" -mtime +1 -delete

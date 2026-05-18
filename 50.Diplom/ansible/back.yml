@@ -10,6 +10,11 @@
     # =============================================================================
     - name: "1. MySQL — базовая настройка"
       block:
+        - name: Разрешение DB proxy к MySQL до проверки HAProxy
+          ansible.builtin.command: "ufw allow from 10.10.10.40 to any port 3306 proto tcp"
+          changed_when: false
+          failed_when: false
+
         # zz-* в mysql.conf.d грузится ПОСЛЕ mysqld.cnf (иначе bind-address снова 127.0.0.1)
         - name: Развертывание конфигурации MySQL
           template:
@@ -43,6 +48,7 @@
             login_unix_socket: /run/mysqld/mysqld.sock
             state: present
             column_case_sensitive: false
+            sql_log_bin: false
 
         - name: Создание файла .my.cnf для root
           copy:
@@ -60,10 +66,11 @@
             name: "{{ repl_user }}"
             password: "{{ repl_password }}"
             priv: "*.*:REPLICATION SLAVE"
-            host: "{{ slave_ip }}"
+            host: "10.10.10.21"
             login_unix_socket: /run/mysqld/mysqld.sock
             state: present
             column_case_sensitive: false
+            sql_log_bin: false
           when: db_role == 'master'
 
         - name: Применение перезапуска MySQL на Master (включить binlog)
@@ -92,6 +99,7 @@
             login_unix_socket: /run/mysqld/mysqld.sock
             state: present
             column_case_sensitive: false
+            sql_log_bin: false
           when: db_role == 'master'
 
         - name: Проверка, установлен ли WordPress demo-сайт
@@ -101,30 +109,157 @@
           register: wp_demo_db_check
           changed_when: false
           failed_when: false
-          when: db_role == 'master' and wp_demo_restore_enabled | bool
+          when: db_role == 'master'
+
+        - name: Проверка живой БД WordPress на Slave для восстановления Master
+          ansible.builtin.shell: >
+            mysql --defaults-file=/root/.my.cnf -NBe
+            "SELECT option_value FROM {{ db_wp_name }}.wp_options WHERE option_name = 'siteurl' LIMIT 1"
+          delegate_to: "{{ groups['backend_slave'][0] }}"
+          register: wp_peer_db_check
+          changed_when: false
+          failed_when: false
+          when: db_role == 'master'
+
+        - name: Создание временной директории для восстановления Master
+          ansible.builtin.file:
+            path: "{{ playbook_dir }}/.tmp"
+            state: directory
+            mode: '0700'
+          delegate_to: localhost
+          become: false
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) == 0
+
+        - name: Дамп живой БД WordPress со Slave для восстановления Master
+          ansible.builtin.shell: >
+            mysqldump --defaults-file=/root/.my.cnf --single-transaction {{ db_wp_name }}
+            > /tmp/wpress_master_restore.sql
+          delegate_to: "{{ groups['backend_slave'][0] }}"
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) == 0
+
+        - name: Загрузка дампа Slave на control node
+          ansible.builtin.fetch:
+            src: /tmp/wpress_master_restore.sql
+            dest: "{{ playbook_dir }}/.tmp/wpress_master_restore.sql"
+            flat: true
+          delegate_to: "{{ groups['backend_slave'][0] }}"
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) == 0
+
+        - name: Копирование дампа Slave на восстановленный Master
+          ansible.builtin.copy:
+            src: "{{ playbook_dir }}/.tmp/wpress_master_restore.sql"
+            dest: /tmp/wpress_master_restore.sql
+            mode: '0600'
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) == 0
+
+        - name: Восстановление Master из живой БД Slave
+          ansible.builtin.shell: mysql --defaults-file=/root/.my.cnf {{ db_wp_name }} < /tmp/wpress_master_restore.sql
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) == 0
+
+        - name: Размещение файла пароля Restic для аварийного восстановления
+          ansible.builtin.copy:
+            content: "{{ restic_password }}"
+            dest: /etc/restic_password
+            owner: root
+            group: root
+            mode: '0400'
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) != 0
+
+        - name: Проверка наличия Restic snapshot для восстановления Master
+          ansible.builtin.shell: |
+            set -o pipefail
+            RESTIC_REPO="rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/backend_master"
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "$RESTIC_REPO" snapshots --latest 1 --tag backend_master --json |
+              python3 -c 'import json, sys; sys.exit(0 if json.load(sys.stdin) else 1)'
+          args:
+            executable: /bin/bash
+          register: wp_restic_snapshot_check
+          changed_when: false
+          failed_when: false
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) != 0
+
+        - name: Восстановление Master из последнего Restic SQL dump
+          ansible.builtin.shell: |
+            set -euo pipefail
+            RESTIC_REPO="rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/backend_master"
+            RESTORE_DIR="/tmp/restic-db-restore"
+            rm -rf "$RESTORE_DIR"
+            mkdir -p "$RESTORE_DIR"
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "$RESTIC_REPO" restore latest \
+              --tag backend_master \
+              --path /tmp/mysql_backups \
+              --target "$RESTORE_DIR"
+            dump_file="$(find "$RESTORE_DIR" -type f -name 'wp_db_*.sql' | sort | tail -n 1)"
+            test -n "$dump_file"
+            mysql --defaults-file=/root/.my.cnf {{ db_wp_name }} < "$dump_file"
+          args:
+            executable: /bin/bash
+          register: wp_restic_restore
+          changed_when: wp_restic_restore.rc == 0
+          failed_when: false
+          when: >
+            db_role == 'master'
+            and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) != 0
+            and wp_restic_snapshot_check.rc | default(1) == 0
 
         - name: Копирование SQL-дампа demo WordPress на Master
           ansible.builtin.copy:
-            src: "{{ wp_demo_sql_src }}"
+            src: "templates/wordpress/demo/forum-demo.sql"
             dest: /tmp/wordpress-demo.sql
             mode: '0600'
           when: >
             db_role == 'master'
-            and wp_demo_restore_enabled | bool
             and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) != 0
+            and wp_restic_restore.rc | default(1) != 0
 
         - name: Импорт demo WordPress в пустую БД
           ansible.builtin.shell: mysql --defaults-file=/root/.my.cnf {{ db_wp_name }} < /tmp/wordpress-demo.sql
           when: >
             db_role == 'master'
-            and wp_demo_restore_enabled | bool
             and wp_demo_db_check.rc | default(1) != 0
+            and wp_peer_db_check.rc | default(1) != 0
+            and wp_restic_restore.rc | default(1) != 0
 
         - name: Удаление временного SQL-дампа demo WordPress
           ansible.builtin.file:
             path: /tmp/wordpress-demo.sql
             state: absent
-          when: db_role == 'master' and wp_demo_restore_enabled | bool
+          when: db_role == 'master'
+
+        - name: Удаление временного дампа восстановления Master
+          ansible.builtin.file:
+            path: /tmp/wpress_master_restore.sql
+            state: absent
+          when: db_role == 'master'
+
+        - name: Удаление временной директории восстановления Restic
+          ansible.builtin.file:
+            path: /tmp/restic-db-restore
+            state: absent
+          when: db_role == 'master'
 
     # =============================================================================
     # 3. WordPress — файлы и конфигурация
@@ -133,94 +268,87 @@
       block:
         - name: Создание директории WordPress
           file:
-            path: "{{ wp_dir }}"
+            path: "/var/www/wordpress"
             state: directory
             owner: www-data
             group: www-data
             mode: '0755'
 
-        # Проверка ДО unarchive: в архиве уже есть twentytwentyfour — иначе rsync пропустится ошибочно
-        - name: Проверка, синхронизирован ли wp-content с Master (только Slave)
-          ansible.builtin.stat:
-            path: "{{ wp_content_sync_marker }}"
-          when: db_role == 'slave'
-          register: wp_content_check
-
-        # Ключ копируется с control node на Slave — путь ansible_ssh_private_key_file на VM не существует
-        - name: Временное копирование SSH-ключа на Slave для rsync
-          ansible.builtin.copy:
-            src: "{{ ansible_ssh_private_key_file }}"
-            dest: "/tmp/vagrant_rsync_key"
-            mode: '0600'
-          when: db_role == 'slave' and not wp_content_check.stat.exists
-
         - name: Распаковка WordPress из локального архива
           unarchive:
             src: "/opt/wordpress_latest-ru_RU.tar.gz"
-            dest: "{{ wp_dir }}"
+            dest: "/var/www/wordpress"
             remote_src: yes
             owner: www-data
             group: www-data
             extra_opts: ["--strip-components=1"]
-            creates: "{{ wp_dir }}/wp-includes/version.php"
+            creates: "/var/www/wordpress/wp-includes/version.php"
 
-        - name: Проверка, восстановлен ли demo wp-content на Master
-          ansible.builtin.stat:
-            path: "{{ wp_demo_content_marker }}"
-          register: wp_demo_content_check
-          when: db_role == 'master' and wp_demo_restore_enabled | bool
+        - name: Проверка состояния текущего NFS mountpoint wp-content
+          ansible.builtin.shell: |
+            if findmnt -rn /var/www/wordpress/wp-content >/dev/null; then
+              timeout 5 ls -la /var/www/wordpress/wp-content >/dev/null
+            fi
+          register: wp_content_mountpoint_check
+          changed_when: false
+          failed_when: false
 
-        - name: Восстановление demo wp-content на Master
-          ansible.builtin.unarchive:
-            src: "{{ wp_demo_content_src }}"
-            dest: "{{ wp_dir }}"
+        - name: Сброс stale NFS mountpoint wp-content
+          ansible.builtin.command: umount -f -l /var/www/wordpress/wp-content
+          changed_when: true
+          failed_when: false
+          when: >
+            wp_content_mountpoint_check.rc | default(0) != 0
+            and (
+              'Stale file handle' in wp_content_mountpoint_check.stderr
+              or 'Input/output error' in wp_content_mountpoint_check.stderr
+              or 'Transport endpoint is not connected' in wp_content_mountpoint_check.stderr
+            )
+
+        - name: Создание точки монтирования общего wp-content
+          ansible.builtin.file:
+            path: "/var/www/wordpress/wp-content"
+            state: directory
             owner: www-data
             group: www-data
-          when: >
-            db_role == 'master'
-            and wp_demo_restore_enabled | bool
-            and not wp_demo_content_check.stat.exists
+            mode: '0775'
 
-        - name: Создание маркера восстановления demo wp-content
-          ansible.builtin.file:
-            path: "{{ wp_demo_content_marker }}"
-            state: touch
-            owner: root
-            group: root
-            mode: '0644'
-          when: >
-            db_role == 'master'
-            and wp_demo_restore_enabled | bool
-            and not wp_demo_content_check.stat.exists
+        - name: Монтирование общего wp-content через NFS
+          ansible.posix.mount:
+            path: "/var/www/wordpress/wp-content"
+            src: "10.10.10.40:/srv/wordpress/wp-content"
+            fstype: nfs4
+            opts: "rw,vers=4,soft,timeo=50,retrans=2,noatime"
+            state: mounted
+          register: wp_content_nfs_mount
+          until: wp_content_nfs_mount is succeeded
+          retries: 5
+          delay: 10
 
-        # Забираем wp-content с Master по внутренней сети 10.10.10.x
-        - name: Синхронизация wp-content с Master (только Slave)
-          ansible.builtin.command: >
-            rsync -avz --delete --rsync-path="sudo rsync"
-            -e "ssh -i /tmp/vagrant_rsync_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-            vagrant@{{ master_ip }}:{{ wp_dir }}/wp-content/ {{ wp_dir }}/wp-content/
-          when: db_role == 'slave' and not wp_content_check.stat.exists
+        - name: Проверка, что wp-content смонтирован с logging
+          ansible.builtin.command: findmnt -rn -o SOURCE /var/www/wordpress/wp-content
+          register: wp_content_mount_source
+          changed_when: false
+          failed_when: "'10.10.10.40' not in wp_content_mount_source.stdout"
 
-        # Маркер идемпотентности: отличие «распаковали архив» от «синхронизировали с Master»
-        - name: Создание маркера синхронизации wp-content
-          ansible.builtin.file:
-            path: "{{ wp_content_sync_marker }}"
-            state: touch
-            owner: root
-            group: root
-            mode: '0644'
-          when: db_role == 'slave' and not wp_content_check.stat.exists
+        - name: Проверка наличия demo-темы в общем wp-content
+          ansible.builtin.stat:
+            path: "/var/www/wordpress/wp-content/themes/demo-forum-theme/style.css"
+          register: wp_demo_theme_check
 
-        - name: Удаление временного SSH-ключа с Slave
-          ansible.builtin.file:
-            path: "/tmp/vagrant_rsync_key"
-            state: absent
-          when: db_role == 'slave' and not wp_content_check.stat.exists
+        - name: Развёртывание demo wp-content (тема и плагин) в общий каталог
+          ansible.builtin.copy:
+            src: "templates/wordpress/demo/wp-content/"
+            dest: "/var/www/wordpress/wp-content/"
+            owner: www-data
+            group: www-data
+            mode: preserve
+          when: not wp_demo_theme_check.stat.exists
 
         - name: Генерация wp-config.php
           template:
             src: templates/wordpress/wp-config.php.j2
-            dest: "{{ wp_dir }}/wp-config.php"
+            dest: "/var/www/wordpress/wp-config.php"
             owner: www-data
             group: www-data
             mode: '0640'
@@ -297,7 +425,7 @@
       block:
         - name: Коррекция прав доступа WordPress
           file:
-            path: "{{ wp_dir }}"
+            path: "/var/www/wordpress"
             state: directory
             owner: www-data
             group: www-data
@@ -356,7 +484,7 @@
           ansible.builtin.shell: |
             mysql --defaults-file=/root/.my.cnf -e "
             CHANGE MASTER TO
-              MASTER_HOST='{{ master_ip }}',
+              MASTER_HOST='10.10.10.20',
               MASTER_USER='{{ repl_user }}',
               MASTER_PASSWORD='{{ repl_password }}',
               MASTER_LOG_FILE='{{ hostvars[groups["backend_master"][0]].master_binlog_raw.stdout_lines[0].split()[0] }}',
@@ -490,6 +618,7 @@
             login_unix_socket: /run/mysqld/mysqld.sock
             state: present
             column_case_sensitive: false
+            sql_log_bin: false
           when: db_role == 'slave'
 
         # Root с peer-IP для автоматического mysqldump между узлами (см. wp-ha-db-sync)
@@ -497,11 +626,12 @@
           community.mysql.mysql_user:
             name: root
             password: "{{ db_root_password }}"
-            host: "{{ slave_ip if db_role == 'master' else master_ip }}"
+            host: "{{ '10.10.10.21' if db_role == 'master' else '10.10.10.20' }}"
             priv: "*.*:ALL,GRANT"
             login_unix_socket: /run/mysqld/mysqld.sock
             state: present
             column_case_sensitive: false
+            sql_log_bin: false
 
     # =============================================================================
     # 11. MySQL — автосинхронизация (только Master)
@@ -547,8 +677,8 @@
 
         - name: Инициализация Restic-репозитория backend
           shell: |
-            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" snapshots >/dev/null 2>&1 ||
-            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" init
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" snapshots >/dev/null 2>&1 ||
+            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" init
           register: restic_init_backend
           changed_when: "'created restic repository' in restic_init_backend.stdout"
           failed_when: false

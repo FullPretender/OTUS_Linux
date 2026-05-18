@@ -2,7 +2,7 @@
 set -euo pipefail
 
 export RESTIC_PASSWORD_FILE="/etc/restic_password"
-RESTIC_REPO="{{ restic_repo_path }}"
+RESTIC_REPO="rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}"
 
 restic backup \
   --repo "$RESTIC_REPO" \
@@ -13,5 +13,5 @@ restic backup \
   /etc/ssl/private/lab.key \
   >> /var/log/restic_backup_frontend.log 2>&1
 
-# Очистка старых снапшотов по политике ТЗ (7 дней, 4 недели)
-restic forget --repo "$RESTIC_REPO" --keep-daily 7 --keep-weekly 4 --prune
+# Очистка старых снапшотов по политике ТЗ
+restic forget --repo "$RESTIC_REPO" --keep-hourly 24 --keep-daily 7 --keep-weekly 4 --prune

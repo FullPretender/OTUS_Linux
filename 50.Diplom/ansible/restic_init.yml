@@ -7,14 +7,30 @@
   tasks:
     - name: Ожидание Rest Server
       ansible.builtin.wait_for:
-        host: "{{ monitoring_service_ip }}"
+        host: "10.10.10.40"
         port: 8000
         timeout: 120
 
     - name: Инициализация Restic-репозитория
       shell: |
-        RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" snapshots >/dev/null 2>&1 ||
-        RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "{{ restic_repo_path }}" init
+        RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" snapshots >/dev/null 2>&1 ||
+        RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" init
       register: restic_init
       changed_when: "'created restic repository' in restic_init.stdout"
       failed_when: restic_init.rc != 0
+
+    - name: Проверка количества snapshot в Restic-репозитории
+      ansible.builtin.shell: |
+        RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" snapshots --json |
+          python3 -c 'import json, sys; print(len(json.load(sys.stdin)))'
+      args:
+        executable: /bin/bash
+      register: restic_snapshot_count
+      changed_when: false
+
+    - name: Запуск первого backup для пустого Restic-репозитория
+      ansible.builtin.systemd:
+        name: "restic-backup-{{ restic_label }}.service"
+        state: started
+        daemon_reload: yes
+      when: restic_snapshot_count.stdout | int == 0

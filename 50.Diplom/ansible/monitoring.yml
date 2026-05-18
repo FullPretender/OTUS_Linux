@@ -27,7 +27,7 @@
     - name: Установить бинарник Node Exporter из box-архива
       shell: |
         set -eu
-        archive="{{ box_artifacts_dir }}/node_exporter.tar.gz"
+        archive="/opt/node_exporter.tar.gz"
         member=$(tar -tzf "$archive" | grep '/node_exporter$' | head -n 1)
         test -n "$member"
         tar -xzf "$archive" -O "$member" > /usr/local/bin/node_exporter
@@ -59,7 +59,7 @@
     - name: Reload systemd
       systemd: { daemon_reload: yes }
 
-- name: Настройка Monitoring (Prometheus + Grafana + Alertmanager + Restic Server)
+- name: Настройка Monitoring (Prometheus + Grafana + Alertmanager)
   hosts: monitoring
   become: yes
 
@@ -71,7 +71,7 @@
         system: yes
         shell: /usr/sbin/nologin
         create_home: no
-      loop: [prometheus, alertmanager, restic]
+      loop: [prometheus, alertmanager]
 
     - name: Проверка наличия бинарника Prometheus
       stat:
@@ -81,7 +81,7 @@
     - name: Установить бинарники Prometheus из box-архива
       shell: |
         set -eu
-        archive="{{ box_artifacts_dir }}/prometheus.tar.gz"
+        archive="/opt/prometheus.tar.gz"
         prom=$(tar -tzf "$archive" | grep '/prometheus$' | head -n 1)
         tool=$(tar -tzf "$archive" | grep '/promtool$' | head -n 1)
         test -n "$prom" && test -n "$tool"
@@ -110,7 +110,7 @@
     - name: Установить бинарник Alertmanager из box-архива
       shell: |
         set -eu
-        archive="{{ box_artifacts_dir }}/alertmanager.tar.gz"
+        archive="/opt/alertmanager.tar.gz"
         member=$(tar -tzf "$archive" | grep '/alertmanager$' | head -n 1)
         test -n "$member"
         tar -xzf "$archive" -O "$member" > /usr/local/bin/alertmanager
@@ -209,55 +209,6 @@
         mode: '0644'
       notify: Restart Grafana
 
-    - name: Проверка наличия бинарника Rest Server
-      stat:
-        path: /usr/local/bin/rest-server
-      register: rest_server_stat
-
-    - name: Установить бинарник Rest Server из box-архива
-      shell: |
-        set -eu
-        archive="{{ box_artifacts_dir }}/rest-server.tar.gz"
-        member=$(tar -tzf "$archive" | grep '/rest-server$' | head -n 1)
-        test -n "$member"
-        tar -xzf "$archive" -O "$member" > /usr/local/bin/rest-server
-        chmod 0755 /usr/local/bin/rest-server
-      args:
-        creates: /usr/local/bin/rest-server
-      when: not rest_server_stat.stat.exists
-      notify: Restart Rest Server
-
-    - name: Создать директорию для репозиториев Restic
-      file:
-        path: "/srv/restic"
-        state: directory
-        owner: restic
-        group: restic
-        mode: '0755'
-
-    - name: Создать поддиректории для клиентов
-      file:
-        path: "/srv/restic/{{ item }}"
-        state: directory
-        owner: restic
-        group: restic
-        mode: '0700'
-      loop: "{{ restic_repos }}"
-
-    - name: Создать директорию для htpasswd
-      file:
-        path: "/etc/restic"
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-
-    - name: Создать файл паролей htpasswd для Rest Server
-      shell: "htpasswd -Bbc /etc/restic/.htpasswd '{{ restic_server_user }}' '{{ restic_server_password }}'"
-      args:
-        creates: /etc/restic/.htpasswd
-      notify: Restart Rest Server
-
     - name: Развернуть systemd-юниты сервисов
       template:
         src: "templates/{{ item }}/{{ item }}.service.j2"
@@ -265,7 +216,7 @@
         owner: root
         group: root
         mode: '0644'
-      loop: [prometheus, alertmanager, rest-server]
+      loop: [prometheus, alertmanager]
       notify: Reload systemd
 
     - name: Активация и запуск сервисов мониторинга
@@ -277,7 +228,6 @@
       loop:
         - prometheus.service
         - alertmanager.service
-        - rest-server.service
         - grafana-server.service
 
   handlers:
@@ -290,7 +240,5 @@
       systemd: { name: alertmanager.service, state: restarted, daemon_reload: yes }
     - name: Restart Grafana
       systemd: { name: grafana-server.service, state: restarted, daemon_reload: yes }
-    - name: Restart Rest Server
-      systemd: { name: rest-server.service, state: restarted, daemon_reload: yes }
     - name: Reload systemd
       systemd: { daemon_reload: yes }
