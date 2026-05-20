@@ -2,3 +2,5 @@
 *.tar.gz
 .vagrant/
 .vault_pass
+.obsidian/
+.tmp/

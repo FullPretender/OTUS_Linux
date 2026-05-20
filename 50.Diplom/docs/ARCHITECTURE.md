@@ -38,24 +38,24 @@ flowchart TD
 
 ## Виртуальные машины
 
-| VM | Management IP | Service IP | Назначение | Host ports |
-| --- | --- | --- | --- | --- |
-| `frontend` | `192.168.56.10` | `10.10.10.10` | HTTPS-точка входа и Nginx load balancer | `8080`, `8443` |
-| `backend-1` | `192.168.56.20` | `10.10.10.20` | WordPress worker и MySQL master | SSH `2202` |
-| `backend-2` | `192.168.56.21` | `10.10.10.21` | WordPress worker и MySQL slave | SSH `2203` |
-| `monitoring` | `192.168.56.30` | `10.10.10.30` | Prometheus, Grafana, Alertmanager | `3000`, `9090`, `9093` |
-| `logging` | `192.168.56.40` | `10.10.10.40` | Loki, HAProxy, NFS, Rest Server, Restic storage | `3100`, `8000` |
+| VM           | Management IP   | Service IP    | Назначение                                      | Host ports |
+| ------------ | --------------- | ------------- | ----------------------------------------------- | ---------- |
+| `frontend`   | `192.168.56.10` | `10.10.10.10` | HTTPS-точка входа и Nginx load balancer         | SSH `2201` |
+| `backend-1`  | `192.168.56.20` | `10.10.10.20` | WordPress worker и MySQL master                 | SSH `2202` |
+| `backend-2`  | `192.168.56.21` | `10.10.10.21` | WordPress worker и MySQL slave                  | SSH `2203` |
+| `monitoring` | `192.168.56.30` | `10.10.10.30` | Prometheus, Grafana, Alertmanager               | SSH `2204` |
+| `logging`    | `192.168.56.40` | `10.10.10.40` | Loki, HAProxy, NFS, Rest Server, Restic storage | SSH `2205` |
 
 Сервисная сеть `10.10.10.0/24` используется для взаимодействия VM между собой. Management-сеть `192.168.56.0/24` используется для SSH/Ansible.
 
 ## Входные точки
 
-- WordPress: `https://lab.diplom.com:8443/`
-- Grafana: `http://127.0.0.1:3000/`
-- Prometheus: `http://127.0.0.1:9090/`
-- Alertmanager: `http://127.0.0.1:9093/`
-- Loki readiness: `http://127.0.0.1:3100/ready`
-- Rest Server: `http://127.0.0.1:8000/`
+- WordPress: `https://lab.diplom.com/`
+- Grafana: `https://lab.diplom.com/grafana/`
+- Prometheus: `https://lab.diplom.com/prometheus/`
+- Alertmanager: `https://lab.diplom.com/alertmanager/`
+
+Внешний HTTP/HTTPS-доступ к веб-интерфейсам идёт только через `frontend` по host-only IP `192.168.56.10`. На host OS запись `/etc/hosts` должна указывать `lab.diplom.com` на `192.168.56.10`. Прямые host port forwards для веб-интерфейсов не используются.
 
 WordPress admin credentials:
 
@@ -65,7 +65,7 @@ admin / DemoAdmin123!
 
 ## Grafana dashboard
 
-Основной dashboard находится в Grafana по адресу `http://127.0.0.1:3000/` и разворачивается из шаблона `ansible/templates/grafana/node-overview-dashboard.json.j2`.
+Основной dashboard находится в Grafana по адресу `https://lab.diplom.com/grafana/` и разворачивается из шаблона `ansible/templates/grafana/node-overview-dashboard.json.j2`.
 
 Источник данных - Prometheus. Он опрашивает `node_exporter` на всех VM каждые `10s`. Для удобства демонстрации каждому target назначены labels:
 
@@ -87,7 +87,7 @@ Dashboard специально считает метрики через label `n
 
 `Firing Alerts`
 
-Показывает количество активных alert-ов Prometheus. Для демонстрации отказа backend здесь появляется `1`, когда срабатывает `InstanceDown`. Детали alert-а удобнее смотреть в Prometheus `http://127.0.0.1:9090/alerts` или Alertmanager `http://127.0.0.1:9093/`.
+Показывает количество активных alert-ов Prometheus. Для демонстрации отказа backend здесь появляется `1`, когда срабатывает `InstanceDown`. Детали alert-а удобнее смотреть в Prometheus `https://lab.diplom.com/prometheus/alerts` или Alertmanager `https://lab.diplom.com/alertmanager/`.
 
 ### Текущие ресурсные показатели
 
@@ -150,8 +150,8 @@ Loopback-интерфейс `lo` исключён, чтобы график по�
 
 ## Поток пользовательского запроса
 
-1. Пользователь открывает `https://lab.diplom.com:8443/`.
-2. VirtualBox пробрасывает host port `8443` на `frontend:443`.
+1. Пользователь открывает `https://lab.diplom.com/`.
+2. Host OS резолвит `lab.diplom.com` в host-only IP `192.168.56.10`.
 3. Nginx на `frontend` принимает HTTPS и проксирует запрос в upstream `backend_pool`.
 4. Upstream выбирает `backend-1` или `backend-2` по `least_conn`.
 5. Backend Nginx передаёт PHP-запрос в PHP-FPM socket `/run/php/php8.1-wordpress.sock`.
@@ -303,8 +303,8 @@ Host-specific правила:
 - `frontend`: `80`, `443`;
 - `backend-1`: MySQL от `backend-2` и `logging`, HTTP от `frontend`;
 - `backend-2`: MySQL от `backend-1` и `logging`, HTTP от `frontend`;
-- `monitoring`: `9090`, `3000`, `9093`;
-- `logging`: `3100`, `8000`, `6033`, `2049`.
+- `monitoring`: `9090`, `3000`, `9093` только от `frontend`;
+- `logging`: `3100` от внутренней сети для Alloy и frontend proxy, `8000` от внутренней сети для Restic/frontend proxy, `6033`, `2049`.
 
 ## Шаблоны
 
@@ -321,6 +321,7 @@ Host-specific правила:
 
 - HTTP `80` редиректит на HTTPS;
 - HTTPS `443` проксирует на `backend_pool`;
+- path-based reverse proxy публикует Grafana `/grafana/`, Prometheus `/prometheus/` и Alertmanager `/alertmanager/`;
 - выставляет proxy headers: `Host`, `X-Forwarded-Proto`, `X-Forwarded-Port`, `X-Real-IP`;
 - задаёт retry на upstream error/timeout.
 
@@ -474,11 +475,13 @@ Host-specific правила:
 `templates/grafana/grafana.ini.j2`
 
 - port `3000`;
+- root URL `https://lab.diplom.com/grafana/`;
+- `serve_from_sub_path = true`;
 - admin credentials из inventory.
 
 `templates/grafana/grafana-datasources.yml.j2`
 
-- datasource Prometheus `localhost:9090`;
+- datasource Prometheus `localhost:9090/prometheus`;
 - datasource Loki `10.10.10.40:3100`.
 
 `templates/grafana/grafana-dashboards.yml.j2`

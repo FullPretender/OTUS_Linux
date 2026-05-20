@@ -1,9 +1,9 @@
 <?php
 /**
- * Plugin Name: Demo Forum
- * Description: Lightweight forum board for the OTUS Linux diploma demo.
+ * Plugin Name: Meme Wire
+ * Description: Lightweight meme board with a public submission form.
  * Version: 1.0.0
- * Author: OTUS Linux
+ * Author: Meme Desk
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -15,8 +15,8 @@ function demo_forum_register_message_type() {
         'demo_forum_message',
         array(
             'labels' => array(
-                'name'          => 'Forum Messages',
-                'singular_name' => 'Forum Message',
+                'name'          => 'Meme Posts',
+                'singular_name' => 'Meme Post',
             ),
             'public'       => false,
             'show_ui'      => true,
@@ -73,12 +73,12 @@ function demo_forum_shortcode() {
     ?>
     <section class="demo-forum">
         <?php if ( isset( $_GET['message'] ) && 'added' === $_GET['message'] ) : ?>
-            <div class="demo-forum-notice">Сообщение добавлено в форум.</div>
+            <div class="demo-forum-notice">Мем опубликован. Редакция уже смеётся.</div>
         <?php endif; ?>
 
         <div class="demo-forum-grid">
             <div class="demo-forum-list">
-                <h2>Последние обсуждения</h2>
+                <h2>Свежие мемы</h2>
                 <?php if ( $messages->have_posts() ) : ?>
                     <?php while ( $messages->have_posts() ) : $messages->the_post(); ?>
                         <article class="demo-forum-card">
@@ -92,26 +92,26 @@ function demo_forum_shortcode() {
                     <?php endwhile; ?>
                     <?php wp_reset_postdata(); ?>
                 <?php else : ?>
-                    <p>Пока нет сообщений. Добавьте первое обсуждение.</p>
+                    <p>Пока тихо. Добавьте первый мем и спасите ленту.</p>
                 <?php endif; ?>
             </div>
 
             <form class="demo-forum-form" method="post">
-                <h2>Добавить сообщение</h2>
+                <h2>Добавить мем</h2>
                 <?php wp_nonce_field( 'demo_forum_submit', 'demo_forum_nonce' ); ?>
                 <label>
-                    Имя
+                    Автор
                     <input type="text" name="demo_forum_author" required>
                 </label>
                 <label>
-                    Тема
+                    Заголовок мема
                     <input type="text" name="demo_forum_title" required>
                 </label>
                 <label>
-                    Сообщение
+                    Текст / подпись
                     <textarea name="demo_forum_message" rows="6" required></textarea>
                 </label>
-                <button type="submit">Опубликовать</button>
+                <button type="submit">Опубликовать мем</button>
             </form>
         </div>
     </section>

@@ -6,8 +6,8 @@ define( 'DB_HOST', '10.10.10.40:6033' );
 define( 'DB_CHARSET', 'utf8mb4' );
 define( 'DB_COLLATE', '' );
 
-define( 'WP_SITEURL', 'https://{{ domain_name }}:{{ wp_public_port }}' );
-define( 'WP_HOME', 'https://{{ domain_name }}:{{ wp_public_port }}' );
+define( 'WP_SITEURL', '{{ public_base_url }}' );
+define( 'WP_HOME', '{{ public_base_url }}' );
 define( 'FS_METHOD', 'direct' );
 
 {# Куки без порта; не подменяем HTTP_HOST — иначе цикл wp-login ↔ wp-admin #}

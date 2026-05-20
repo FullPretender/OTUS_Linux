@@ -1,8 +1,8 @@
 /*
-Theme Name: Demo Forum Theme
+Theme Name: Meme Wire Theme
 Theme URI: https://wordpress.org/themes/
-Author: OTUS Linux
-Description: Simple responsive theme for the WordPress demo forum.
+Author: Meme Desk
+Description: Dark newspaper-style theme for a lightweight meme feed.
 Version: 1.0.0
 Requires at least: 6.0
 Tested up to: 6.6
@@ -12,14 +12,17 @@ Text Domain: demo-forum-theme
 */
 
 :root {
-    color-scheme: light;
-    --bg: #f5f7fb;
-    --panel: #ffffff;
-    --text: #162033;
-    --muted: #667085;
-    --accent: #2563eb;
-    --accent-dark: #1e40af;
-    --border: #d9e1f2;
+    color-scheme: dark;
+    --bg: #1d1d1b;
+    --panel: #282824;
+    --panel-soft: #333229;
+    --text: #f1ead8;
+    --muted: #b7ae9a;
+    --accent: #d6a84f;
+    --accent-dark: #b8872d;
+    --border: #4a4639;
+    --ink: #11110f;
+    --shadow: rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -28,9 +31,11 @@ Text Domain: demo-forum-theme
 
 body {
     margin: 0;
-    background: var(--bg);
+    background:
+        radial-gradient(circle at top left, rgba(214, 168, 79, 0.12), transparent 30%),
+        linear-gradient(180deg, #24231f 0%, var(--bg) 48%, #171715 100%);
     color: var(--text);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Georgia, "Times New Roman", serif;
     line-height: 1.6;
 }
 
@@ -39,9 +44,12 @@ a {
 }
 
 .site-header {
-    background: linear-gradient(135deg, #172554, #2563eb);
-    color: #ffffff;
-    padding: 56px 24px;
+    background:
+        linear-gradient(135deg, rgba(214, 168, 79, 0.16), transparent 55%),
+        #20201d;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    padding: 56px 24px 44px;
 }
 
 .site-header-inner,
@@ -52,16 +60,21 @@ a {
 }
 
 .site-title {
-    font-size: clamp(32px, 6vw, 56px);
-    line-height: 1;
-    margin: 0 0 16px;
+    font-size: clamp(40px, 8vw, 76px);
+    letter-spacing: -0.05em;
+    line-height: 0.92;
+    margin: 0 0 18px;
+    text-transform: uppercase;
 }
 
 .site-tagline {
-    font-size: 20px;
+    color: var(--muted);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.04em;
     margin: 0;
     max-width: 720px;
-    opacity: 0.9;
+    text-transform: uppercase;
 }
 
 .site-main {
@@ -71,9 +84,18 @@ a {
 .content-card {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 28px;
-    box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    box-shadow: 0 24px 70px var(--shadow);
     padding: 32px;
+    position: relative;
+}
+
+.content-card::before {
+    background: linear-gradient(90deg, var(--accent), transparent);
+    content: "";
+    display: block;
+    height: 3px;
+    margin: -12px 0 28px;
 }
 
 .demo-forum-grid {
@@ -86,11 +108,12 @@ a {
 .demo-forum-form,
 .demo-forum-notice {
     border: 1px solid var(--border);
-    border-radius: 20px;
+    border-radius: 6px;
     padding: 20px;
 }
 
 .demo-forum-card {
+    background: #24241f;
     margin-bottom: 16px;
 }
 
@@ -100,32 +123,61 @@ a {
     margin-top: 0;
 }
 
+.demo-forum-list h2,
+.demo-forum-form h2 {
+    border-bottom: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 24px;
+    letter-spacing: 0.08em;
+    padding-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.demo-forum-card h3 {
+    font-size: 24px;
+    line-height: 1.15;
+    margin-bottom: 10px;
+}
+
+.demo-forum-card p {
+    color: #e8dfcb;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
 .demo-forum-card span {
     color: var(--muted);
+    display: inline-block;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 14px;
+    margin-top: 8px;
 }
 
 .demo-forum-notice {
-    background: #dcfce7;
-    border-color: #86efac;
+    background: rgba(214, 168, 79, 0.16);
+    border-color: rgba(214, 168, 79, 0.55);
+    color: #ffe0a3;
+    font-family: Arial, Helvetica, sans-serif;
     margin-bottom: 24px;
 }
 
 .demo-forum-form {
     align-self: start;
-    background: #f8fbff;
+    background: var(--panel-soft);
 }
 
 .demo-forum-form label {
     display: block;
+    font-family: Arial, Helvetica, sans-serif;
     font-weight: 700;
     margin-bottom: 16px;
 }
 
 .demo-forum-form input,
 .demo-forum-form textarea {
+    background: #1b1b18;
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: 4px;
+    color: var(--text);
     display: block;
     font: inherit;
     margin-top: 8px;
@@ -136,12 +188,14 @@ a {
 .demo-forum-form button {
     background: var(--accent);
     border: 0;
-    border-radius: 999px;
-    color: #ffffff;
+    border-radius: 4px;
+    color: var(--ink);
     cursor: pointer;
-    font: inherit;
+    font: 700 14px/1 Arial, Helvetica, sans-serif;
     font-weight: 700;
-    padding: 12px 24px;
+    letter-spacing: 0.08em;
+    padding: 14px 24px;
+    text-transform: uppercase;
 }
 
 .demo-forum-form button:hover {
@@ -150,6 +204,8 @@ a {
 
 .site-footer {
     color: var(--muted);
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 14px;
     padding: 0 24px 32px;
 }
 

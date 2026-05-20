@@ -261,6 +261,32 @@
             state: absent
           when: db_role == 'master'
 
+        - name: Актуализация публичных URL WordPress
+          ansible.builtin.shell: |
+            mysql --defaults-file=/root/.my.cnf {{ db_wp_name }} <<'SQL'
+            UPDATE wp_options
+            SET option_value = '{{ public_base_url }}'
+            WHERE option_name IN ('siteurl', 'home');
+            UPDATE wp_users
+            SET user_url = REPLACE(
+              REPLACE(user_url, 'https://lab.example.com:8443', '{{ public_base_url }}'),
+              'https://{{ domain_name }}:8443',
+              '{{ public_base_url }}'
+            )
+            WHERE user_url LIKE 'https://lab.example.com:8443%'
+               OR user_url LIKE 'https://{{ domain_name }}:8443%';
+            UPDATE wp_posts
+            SET guid = REPLACE(
+              REPLACE(guid, 'https://lab.example.com:8443', '{{ public_base_url }}'),
+              'https://{{ domain_name }}:8443',
+              '{{ public_base_url }}'
+            )
+            WHERE guid LIKE 'https://lab.example.com:8443%'
+               OR guid LIKE 'https://{{ domain_name }}:8443%';
+            SQL
+          changed_when: false
+          when: db_role == 'master'
+
     # =============================================================================
     # 3. WordPress — файлы и конфигурация
     # =============================================================================

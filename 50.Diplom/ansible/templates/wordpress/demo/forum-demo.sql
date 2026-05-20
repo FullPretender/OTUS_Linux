@@ -1,4 +1,4 @@
--- WordPress demo forum seed for the OTUS Linux diploma project.
+-- WordPress meme site seed.
 -- Imported into an already created database by ansible/back.yml.
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -187,10 +187,10 @@ CREATE TABLE `wp_users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `wp_options` (`option_id`, `option_name`, `option_value`, `autoload`) VALUES
-(1, 'siteurl', 'https://lab.example.com:8443', 'yes'),
-(2, 'home', 'https://lab.example.com:8443', 'yes'),
-(3, 'blogname', 'OTUS Demo Forum', 'yes'),
-(4, 'blogdescription', 'Готовый WordPress-форум для демонстрации отказоустойчивого проекта', 'yes'),
+(1, 'siteurl', 'https://lab.diplom.com', 'yes'),
+(2, 'home', 'https://lab.diplom.com', 'yes'),
+(3, 'blogname', 'Мемная Сводка', 'yes'),
+(4, 'blogdescription', 'Свежие мемы, странные наблюдения и немного жизненного абсурда', 'yes'),
 (5, 'users_can_register', '0', 'yes'),
 (6, 'admin_email', 'admin@example.com', 'yes'),
 (7, 'start_of_week', '1', 'yes'),
@@ -259,7 +259,7 @@ INSERT INTO `wp_options` (`option_id`, `option_name`, `option_value`, `autoload`
 (70, 'wp_user_roles', 'a:2:{s:13:"administrator";a:2:{s:4:"name";s:13:"Administrator";s:12:"capabilities";a:61:{s:13:"switch_themes";b:1;s:11:"edit_themes";b:1;s:16:"activate_plugins";b:1;s:12:"edit_plugins";b:1;s:10:"edit_users";b:1;s:10:"edit_files";b:1;s:14:"manage_options";b:1;s:17:"moderate_comments";b:1;s:17:"manage_categories";b:1;s:12:"manage_links";b:1;s:12:"upload_files";b:1;s:6:"import";b:1;s:15:"unfiltered_html";b:1;s:10:"edit_posts";b:1;s:17:"edit_others_posts";b:1;s:20:"edit_published_posts";b:1;s:13:"publish_posts";b:1;s:10:"edit_pages";b:1;s:4:"read";b:1;s:8:"level_10";b:1;s:7:"level_9";b:1;s:7:"level_8";b:1;s:7:"level_7";b:1;s:7:"level_6";b:1;s:7:"level_5";b:1;s:7:"level_4";b:1;s:7:"level_3";b:1;s:7:"level_2";b:1;s:7:"level_1";b:1;s:7:"level_0";b:1;s:17:"edit_others_pages";b:1;s:20:"edit_published_pages";b:1;s:13:"publish_pages";b:1;s:12:"delete_pages";b:1;s:19:"delete_others_pages";b:1;s:22:"delete_published_pages";b:1;s:12:"delete_posts";b:1;s:19:"delete_others_posts";b:1;s:22:"delete_published_posts";b:1;s:20:"delete_private_posts";b:1;s:18:"edit_private_posts";b:1;s:18:"read_private_posts";b:1;s:20:"delete_private_pages";b:1;s:18:"edit_private_pages";b:1;s:18:"read_private_pages";b:1;s:12:"delete_users";b:1;s:12:"create_users";b:1;s:17:"unfiltered_upload";b:1;s:14:"edit_dashboard";b:1;s:14:"update_plugins";b:1;s:14:"delete_plugins";b:1;s:15:"install_plugins";b:1;s:13:"update_themes";b:1;s:14:"install_themes";b:1;s:11:"update_core";b:1;s:10:"list_users";b:1;s:12:"remove_users";b:1;s:13:"promote_users";b:1;s:18:"edit_theme_options";b:1;s:13:"delete_themes";b:1;s:6:"export";b:1;}}s:10:"subscriber";a:2:{s:4:"name";s:10:"Subscriber";s:12:"capabilities";a:1:{s:4:"read";b:1;}}}', 'yes');
 
 INSERT INTO `wp_users` (`ID`, `user_login`, `user_pass`, `user_nicename`, `user_email`, `user_url`, `user_registered`, `user_activation_key`, `user_status`, `display_name`) VALUES
-(1, 'admin', '2112935c22d61ce9d58f9ef5f8abb228', 'admin', 'admin@example.com', 'https://lab.example.com:8443', '2026-05-16 10:00:00', '', 0, 'Demo Admin');
+(1, 'admin', '2112935c22d61ce9d58f9ef5f8abb228', 'admin', 'admin@example.com', 'https://lab.diplom.com', '2026-05-16 10:00:00', '', 0, 'Demo Admin');
 
 INSERT INTO `wp_usermeta` (`umeta_id`, `user_id`, `meta_key`, `meta_value`) VALUES
 (1, 1, 'nickname', 'admin'),
@@ -276,15 +276,15 @@ INSERT INTO `wp_usermeta` (`umeta_id`, `user_id`, `meta_key`, `meta_value`) VALU
 (12, 1, 'wp_user_level', '10');
 
 INSERT INTO `wp_posts` (`ID`, `post_author`, `post_date`, `post_date_gmt`, `post_content`, `post_title`, `post_excerpt`, `post_status`, `comment_status`, `ping_status`, `post_password`, `post_name`, `to_ping`, `pinged`, `post_modified`, `post_modified_gmt`, `post_content_filtered`, `post_parent`, `guid`, `menu_order`, `post_type`, `post_mime_type`, `comment_count`) VALUES
-(2, 1, '2026-05-16 10:00:00', '2026-05-16 07:00:00', '<p>Добро пожаловать на демонстрационный форум проекта. Здесь можно проверить WordPress, балансировку, репликацию MySQL и резервное копирование.</p>\n[demo_forum]', 'Форум проекта', '', 'publish', 'closed', 'closed', '', 'forum', '', '', '2026-05-16 10:00:00', '2026-05-16 07:00:00', '', 0, 'https://lab.example.com:8443/?page_id=2', 0, 'page', '', 0),
-(10, 1, '2026-05-16 10:10:00', '2026-05-16 07:10:00', 'После чистого запуска WordPress уже содержит тему, плагин форума и стартовые обсуждения. Это удобно показывать сразу после vagrant up.', 'Чистое развёртывание без ручной установки', '', 'publish', 'closed', 'closed', '', 'clean-deploy', '', '', '2026-05-16 10:10:00', '2026-05-16 07:10:00', '', 0, 'https://lab.example.com:8443/?post_type=demo_forum_message&p=10', 0, 'demo_forum_message', '', 0),
-(11, 1, '2026-05-16 10:20:00', '2026-05-16 07:20:00', 'Если один backend недоступен, frontend продолжает отдавать WordPress со второго узла. База и wp-content синхронизируются заранее.', 'Как проверить отказ backend', '', 'publish', 'closed', 'closed', '', 'backend-failover', '', '', '2026-05-16 10:20:00', '2026-05-16 07:20:00', '', 0, 'https://lab.example.com:8443/?post_type=demo_forum_message&p=11', 0, 'demo_forum_message', '', 0),
-(12, 1, '2026-05-16 10:30:00', '2026-05-16 07:30:00', 'Restic сохраняет дамп базы и каталог WordPress. После добавления новых сообщений можно запустить backup вручную и увидеть свежий snapshot.', 'Проверка резервного копирования', '', 'publish', 'closed', 'closed', '', 'backup-check', '', '', '2026-05-16 10:30:00', '2026-05-16 07:30:00', '', 0, 'https://lab.example.com:8443/?post_type=demo_forum_message&p=12', 0, 'demo_forum_message', '', 0);
+(2, 1, '2026-05-16 10:00:00', '2026-05-16 07:00:00', '<p>Добро пожаловать в тёмную редакцию мемов. Здесь собираются смешные наблюдения, короткие подписи и великие мысли уровня «ещё пять минут и точно начну».</p>\n[demo_forum]', 'Главная лента мемов', '', 'publish', 'closed', 'closed', '', 'meme-feed', '', '', '2026-05-16 10:00:00', '2026-05-16 07:00:00', '', 0, 'https://lab.diplom.com/?page_id=2', 0, 'page', '', 0),
+(10, 1, '2026-05-16 10:10:00', '2026-05-16 07:10:00', 'Кот сел на клавиатуру, посмотрел на результат и теперь считается senior-разработчиком по случайным hotkey.', 'Кот нажал что-то важное', '', 'publish', 'closed', 'closed', '', 'cat-hotkeys', '', '', '2026-05-16 10:10:00', '2026-05-16 07:10:00', '', 0, 'https://lab.diplom.com/?post_type=demo_forum_message&p=10', 0, 'demo_forum_message', '', 0),
+(11, 1, '2026-05-16 10:20:00', '2026-05-16 07:20:00', 'Понедельник снова пришёл без приглашения. Коллективно делаем вид, что это не баг календаря, а ожидаемое поведение.', 'Понедельник в продакшене', '', 'publish', 'closed', 'closed', '', 'monday-in-production', '', '', '2026-05-16 10:20:00', '2026-05-16 07:20:00', '', 0, 'https://lab.diplom.com/?post_type=demo_forum_message&p=11', 0, 'demo_forum_message', '', 0),
+(12, 1, '2026-05-16 10:30:00', '2026-05-16 07:30:00', 'Кофе закончился ровно в тот момент, когда мозг собирался выйти из режима энергосбережения. Совпадение подозрительное.', 'Кофе был главным планом', '', 'publish', 'closed', 'closed', '', 'coffee-was-the-plan', '', '', '2026-05-16 10:30:00', '2026-05-16 07:30:00', '', 0, 'https://lab.diplom.com/?post_type=demo_forum_message&p=12', 0, 'demo_forum_message', '', 0);
 
 INSERT INTO `wp_postmeta` (`meta_id`, `post_id`, `meta_key`, `meta_value`) VALUES
-(1, 10, 'demo_forum_author', 'Алексей'),
-(2, 11, 'demo_forum_author', 'Команда эксплуатации'),
-(3, 12, 'demo_forum_author', 'Backup Bot');
+(1, 10, 'demo_forum_author', 'Кот-редактор'),
+(2, 11, 'demo_forum_author', 'Отдел внезапных дедлайнов'),
+(3, 12, 'demo_forum_author', 'Бариста без паники');
 
 INSERT INTO `wp_terms` (`term_id`, `name`, `slug`, `term_group`) VALUES
 (1, 'Uncategorized', 'uncategorized', 0),

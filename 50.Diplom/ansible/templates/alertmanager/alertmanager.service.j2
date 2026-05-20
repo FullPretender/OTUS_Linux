@@ -10,7 +10,9 @@ Group=alertmanager
 ExecStart=/usr/local/bin/alertmanager \
   --config.file=/etc/alertmanager/alertmanager.yml \
   --storage.path=/var/lib/alertmanager \
-  --web.listen-address=0.0.0.0:9093
+  --web.listen-address=0.0.0.0:9093 \
+  --web.external-url={{ public_base_url }}/alertmanager/ \
+  --web.route-prefix=/alertmanager/
 Restart=on-failure
 RestartSec=5
 

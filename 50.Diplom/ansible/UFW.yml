@@ -20,23 +20,13 @@
       - { rule: allow, port: "80", proto: tcp, from: "10.10.10.10" }
     monitoring_ufw_rules:
       - { rule: allow, port: "9100", proto: tcp, from: "10.10.10.0/24" }
-      - { rule: allow, port: "9090", proto: tcp, from: "10.10.10.0/24" }
-      - { rule: allow, port: "9090", proto: tcp, from: "192.168.56.0/24" }
-      - { rule: allow, port: "9090", proto: tcp, from: "10.0.2.2" }
-      - { rule: allow, port: "3000", proto: tcp, from: "10.10.10.0/24" }
-      - { rule: allow, port: "3000", proto: tcp, from: "192.168.56.0/24" }
-      - { rule: allow, port: "3000", proto: tcp, from: "10.0.2.2" }
-      - { rule: allow, port: "9093", proto: tcp, from: "10.10.10.0/24" }
-      - { rule: allow, port: "9093", proto: tcp, from: "192.168.56.0/24" }
-      - { rule: allow, port: "9093", proto: tcp, from: "10.0.2.2" }
+      - { rule: allow, port: "9090", proto: tcp, from: "10.10.10.10" }
+      - { rule: allow, port: "3000", proto: tcp, from: "10.10.10.10" }
+      - { rule: allow, port: "9093", proto: tcp, from: "10.10.10.10" }
     logging_ufw_rules:
       - { rule: allow, port: "3100", proto: tcp, from: "10.10.10.0/24" }
-      - { rule: allow, port: "3100", proto: tcp, from: "192.168.56.0/24" }
-      - { rule: allow, port: "3100", proto: tcp, from: "10.0.2.2" }
       - { rule: allow, port: "9100", proto: tcp, from: "10.10.10.0/24" }
       - { rule: allow, port: "8000", proto: tcp, from: "10.10.10.0/24" }
-      - { rule: allow, port: "8000", proto: tcp, from: "192.168.56.0/24" }
-      - { rule: allow, port: "8000", proto: tcp, from: "10.0.2.2" }
       - { rule: allow, port: "6033", proto: tcp, from: "10.10.10.0/24" }
       - { rule: allow, port: "2049", proto: tcp, from: "10.10.10.0/24" }
     ufw_rules: >-
