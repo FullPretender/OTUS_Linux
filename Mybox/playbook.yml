@@ -4,6 +4,32 @@
   become: yes
   gather_facts: yes
 
+  vars:
+    mybox_archives:
+      - { src: "/opt/loki.zip", dir: "/tmp/loki-extract", pattern: "loki", bin: "loki", path_search: "/loki(-linux-amd64)?$" }
+      - { src: "/opt/node_exporter.tar.gz", dir: "/tmp/node-exporter-extract", pattern: "node_exporter", bin: "node_exporter", path_search: "/node_exporter$" }
+      - { src: "/opt/prometheus.tar.gz", dir: "/tmp/prometheus-extract", pattern: "prometheus", bin: "prometheus", path_search: "/prometheus$" }
+      - { src: "/opt/alertmanager.tar.gz", dir: "/tmp/alertmanager-extract", pattern: "alertmanager", bin: "alertmanager", path_search: "/alertmanager$" }
+      - { src: "/opt/alloy.zip", dir: "/tmp/alloy-extract", pattern: "alloy", bin: "alloy", path_search: "/alloy(-linux-amd64)?$" }
+      - { src: "/opt/rest-server.tar.gz", dir: "/tmp/rest-server-extract", pattern: "rest-server", bin: "rest-server", path_search: "/rest-server$" }
+    mybox_binaries:
+      - loki
+      - node_exporter
+      - prometheus
+      - alertmanager
+      - alloy
+      - rest-server
+    mybox_services_disabled:
+      - nginx
+      - mysql
+      - ufw
+      - php8.1-fpm
+      - grafana-server
+      - haproxy
+      - nfs-server
+    mybox_services_running:
+      - ssh
+
   tasks:
 ###Обновление и установка софта
     - name: Update apt cache and upgrade all packages
@@ -14,7 +40,7 @@
         autoremove: yes
         autoclean: yes
 
-    - name: Install base dependencies and services from repo
+    - name: Install base dependencies
       apt:
         name:
           - nginx
@@ -33,12 +59,30 @@
           - unzip
           - tar
           - openssl
-          - apache2-utils 
+          - apache2-utils
           - python3-pymysql
+          - python3-passlib
           - gnupg2
           - apt-transport-https
+          - nfs-common
+          - nfs-kernel-server
+          - haproxy
         state: present
         update_cache: yes
+
+    - name: Stop and disable selected APT services after install
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      loop: "{{ mybox_services_disabled | reject('equalto', 'grafana-server') | list }}"
+
+    - name: Stop and disable NFS client target if present (nfs-common)
+      systemd:
+        name: nfs-client.target
+        state: stopped
+        enabled: no
+      ignore_errors: yes
 
 ###Скачивание архивов
     - name: Скачать Loki
@@ -83,14 +127,47 @@
         dest: "/opt/wordpress_latest-ru_RU.tar.gz"
         mode: '0644'
 
-    - name: Скачать Promtail
-      get_url:
-        url: "https://github.com/grafana/loki/releases/download/v3.0.0/promtail-linux-amd64.zip"
-        dest: "/opt/promtail.zip"
-        mode: '0644'
+###Установка бинарников из архивов
+    - name: Create extract directories for archives
+      file:
+        path: "{{ item.dir }}"
+        state: directory
+        mode: '0755'
+      loop: "{{ mybox_archives }}"
+
+    - name: Unarchive binary distributions
+      ansible.builtin.unarchive:
+        src: "{{ item.src }}"
+        dest: "{{ item.dir }}"
+        remote_src: true
+      loop: "{{ mybox_archives }}"
+
+    - name: Find binaries in archives
+      ansible.builtin.find:
+        paths: "{{ item.dir }}"
+        patterns: "{{ item.pattern }}*"
+        file_type: file
+        recurse: true
+      loop: "{{ mybox_archives }}"
+      register: mybox_binary_find
+
+    - name: Install binaries to /usr/local/bin
+      ansible.builtin.copy:
+        src: >-
+          {{ item.files
+             | selectattr('path', 'search', mybox_archives[idx].path_search)
+             | map(attribute='path')
+             | list
+             | first }}
+        dest: "/usr/local/bin/{{ mybox_archives[idx].bin }}"
+        mode: '0755'
+        remote_src: true
+      loop: "{{ mybox_binary_find.results }}"
+      loop_control:
+        index_var: idx
+      when: item.matched | default(0) > 0
 
 ###Установка grafana
-
     - name: Добавить GPG-ключ Grafana
       apt_key:
         url: "https://apt.grafana.com/gpg.key"
@@ -111,6 +188,12 @@
         state: present
         update_cache: yes
 
+    - name: Stop and disable Grafana server
+      systemd:
+        name: grafana-server
+        state: stopped
+        enabled: no
+
 ###Найстройка для vagrant
     - name: Ensure vagrant user exists
       user:
@@ -126,15 +209,13 @@
         owner: vagrant
         group: vagrant
 
-    - name: Download Vagrant insecure public key
-      get_url:
-        url: "https://raw.githubusercontent.com/hashicorp/vagrant/master/keys/vagrant.pub"
+    - name: Install Vagrant insecure public key from local file
+      copy:
+        src: files/vagrant.pub
         dest: /home/vagrant/.ssh/authorized_keys
         mode: '0600'
         owner: vagrant
         group: vagrant
-        force: yes
-        validate_certs: no 
 
     - name: Set correct permissions for .ssh directory
       file:
@@ -181,7 +262,7 @@
         - /var/lib/cloud/data
       ignore_errors: yes
 
-    - name: Clean apt cache
+    - name: Clean apt cache (apt-get clean)
       apt:
         autoclean: yes
         clean: yes
@@ -198,7 +279,72 @@
         - /tmp/*
         - /var/tmp/*
 
-#sudo apt-get clean
-#sudo dd if=/dev/zero of=/EMPTY bs=1M || true
-#sudo rm -f /EMPTY
-#vagrant package --output diplom-ubuntu.box && vagrant box add diplom-ubuntu ./diplom-ubuntu.box --force
+    - name: Zero free disk space to shrink VM disk image
+      ansible.builtin.shell: dd if=/dev/zero of=/EMPTY bs=1M status=none 2>/dev/null || true
+      changed_when: true
+      async: 3600
+      poll: 15
+
+    - name: Remove zero-fill staging file
+      ansible.builtin.file:
+        path: /EMPTY
+        state: absent
+
+###Отчёт о состоянии сервисов
+    - name: Gather service facts for report
+      ansible.builtin.service_facts:
+
+    - name: Verify disabled services are stopped and disabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services[item ~ '.service'] is defined
+          - ansible_facts.services[item ~ '.service'].state in ['stopped', 'inactive']
+          - ansible_facts.services[item ~ '.service'].status == 'disabled'
+        fail_msg: "Сервис {{ item }} должен быть inactive/stopped и disabled"
+      loop: "{{ mybox_services_disabled }}"
+
+    - name: Verify SSH service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['ssh.service'] is defined
+          - ansible_facts.services['ssh.service'].state == 'running'
+        fail_msg: "Сервис ssh должен быть active/running"
+
+    - name: Check archive binaries are installed
+      ansible.builtin.stat:
+        path: "/usr/local/bin/{{ item }}"
+      loop: "{{ mybox_binaries }}"
+      register: mybox_binary_stats
+
+    - name: Verify all archive binaries exist
+      ansible.builtin.assert:
+        that:
+          - item.stat.exists
+          - item.stat.executable
+        fail_msg: "Бинарник {{ mybox_binaries[ansible_loop.index0] }} отсутствует в /usr/local/bin"
+      loop: "{{ mybox_binary_stats.results }}"
+      loop_control:
+        extended: true
+
+    - name: Build lists for services report
+      ansible.builtin.set_fact:
+        mybox_report_disabled: "{{ mybox_services_disabled }}"
+        mybox_report_running: "{{ mybox_services_running }}"
+        mybox_report_binaries: "{{ mybox_binaries }}"
+
+    - name: Mybox services status report
+      ansible.builtin.debug:
+        msg: |
+          === Mybox: состояние сервисов ===
+          Отключены (stopped/disabled):
+          {% for s in mybox_report_disabled %}
+            - {{ s }}
+          {% endfor %}
+
+          Работают (active):
+          {% for s in mybox_report_running %}
+            - {{ s }}
+          {% endfor %}
+
+          Бинарники в /usr/local/bin (без systemd):
+            - {{ mybox_report_binaries | join(', ') }}
