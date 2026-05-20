@@ -129,7 +129,7 @@ Playbook настраивает backend-слой WordPress:
 
 ### 11. MySQL — автосинхронизация (только Master)
 
-- `Скрипт автовыравнивания БД WordPress` рендерит `/usr/local/bin/wp-ha-db-sync.sh`.
+- `Скрипт автовыравнивания БД WordPress` рендерит `/usr/local/bin/wp-ha-db-sync.sh` (сравнивает `MAX(ID)` в `wp_posts` на master и slave, при расхождении — `mysqldump` в сторону отстающего узла).
 - `Systemd unit автосинхронизации БД` рендерит `wp-ha-db-sync.service` и `wp-ha-db-sync.timer`.
 - `Включение таймера автосинхронизации БД` запускает и включает `wp-ha-db-sync.timer`.
 
@@ -138,8 +138,9 @@ Playbook настраивает backend-слой WordPress:
 ### 12. Restic — клиентский backup backend
 
 - `Размещение файла пароля Restic` создает `/etc/restic_password` с правами `0400`.
-- `Инициализация Restic-репозитория backend` проверяет `snapshots`, а если репозиторий еще не инициализирован, выполняет `restic init`.
 - `Генерация скрипта бэкапа` рендерит `/usr/local/bin/restic_backup_{{ restic_label }}.sh`; шаблон зависит от `db_role`.
+
+`restic init` и первый backup — в [`restic_init.yml`](restic_init.md), не в `back.yml`.
 - `Развертывание systemd-юнитов Restic` создает service и timer для backup.
 - `Активация таймера Restic` включает и запускает `restic-backup-{{ restic_label }}.timer`.
 

@@ -15,7 +15,7 @@ Playbook готовит общий инфраструктурный узел д�
 
 1. Создает системного пользователя `restic`.
 2. Временно разрешает доступ к портам DB endpoint, NFS и Rest Server до финального применения `UFW.yml`.
-3. Устанавливает и запускает `rest-server`.
+3. Проверяет preinstalled `rest-server` в box `diplom-ubuntu` и запускает сервис.
 4. Готовит директории Restic-репозиториев для frontend и backend.
 5. Создает общий каталог `wp-content` и экспортирует его через NFSv4.
 6. Настраивает HAProxy как стабильную точку подключения WordPress к MySQL.
@@ -30,29 +30,20 @@ Task создает системного пользователя `restic` бе�
 
 ### Разрешение DB endpoint и NFS до монтирования backend-узлами
 
-Task выполняет команды `ufw allow` для портов `6033`, `2049` и `8000`.
+Task выполняет `ufw allow from 10.10.10.0/24 to any port <port> proto tcp` для портов `6033`, `2049`, `8000` в цикле `loop`.
 
-- `6033` нужен для HAProxy MySQL endpoint.
-- `2049` нужен для NFSv4 export общего `wp-content`.
-- `8000` нужен для Rest Server.
+- `6033` — HAProxy MySQL endpoint.
+- `2049` — NFSv4 export `wp-content`.
+- `8000` — Rest Server.
 
-Задача использует `loop`, чтобы одинаково применить правило к каждому порту. `changed_when: false` не помечает play как измененный из-за ручной команды UFW, а `failed_when: false` позволяет не падать, если UFW еще не готов или правило уже существует. Финальная политика firewall отдельно закрепляется в `UFW.md`.
+`changed_when: false` и `failed_when: false` делают задачу безопасной при re-provision. Финальная политика — в `UFW.yml`.
 
-### Проверка наличия бинарника Rest Server
+### Проверка бинарника Rest Server в box-образе
 
-Task проверяет путь `/usr/local/bin/rest-server` и сохраняет результат в `rest_server_stat`. Это нужно для идемпотентности: следующий task устанавливает бинарник только если его еще нет.
+1. `stat` на `/usr/local/bin/rest-server`.
+2. `assert`: файл существует и executable. При отсутствии playbook падает с `fail_msg` о необходимости box `diplom-ubuntu`.
 
-### Установить бинарник Rest Server из box-архива
-
-Task распаковывает `rest-server` из `/opt/rest-server.tar.gz` в `/usr/local/bin/rest-server` и выставляет права `0755`.
-
-Ключевые детали:
-
-- `args.creates: /usr/local/bin/rest-server` защищает от повторной установки.
-- `when: not rest_server_stat.stat.exists` дополнительно делает установку условной.
-- `notify: Restart Rest Server` перезапускает сервис только если бинарник был установлен.
-
-Зачем это нужно: стенд использует заранее подготовленный архив в Vagrant box, а не скачивание из интернета во время provisioning.
+Бинарник **не** распаковывается из `/opt` во время provisioning — он предустановлен в образе.
 
 ### Создать директорию для репозиториев Restic
 
@@ -182,7 +173,7 @@ Task запускает и включает `haproxy.service`. После это
 - `ansible/templates/rest-server/rest-server.service.j2`
 - `ansible/templates/haproxy/mysql-writer.cfg.j2`
 - `ansible/templates/wordpress/demo/wp-content/`
-- `/opt/rest-server.tar.gz`
+- `/usr/local/bin/rest-server`
 - `/srv/restic/`
 - `/etc/restic/.htpasswd`
 - `/srv/wordpress/wp-content`

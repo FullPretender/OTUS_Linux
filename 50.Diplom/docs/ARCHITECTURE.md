@@ -1,8 +1,10 @@
 # Архитектура проекта OTUS Linux Diploma
 
+См. также: [README.md](../README.md), [DEMO_SCRIPT.md](DEMO_SCRIPT.md), справочник playbook-ов [ansible/](ansible/).
+
 ## Назначение проекта
 
-Проект разворачивает демонстрационную отказоустойчивую инфраструктуру WordPress-форума в Vagrant/VirtualBox. Цель стенда - показать автоматизированное развёртывание, отказоустойчивость backend-узлов, централизованные backup, мониторинг, логирование и firewall-настройки.
+Проект разворачивает демонстрационную отказоустойчивую инфраструктуру WordPress в Vagrant/VirtualBox. Демо-приложение — **лента мемов** (плагин `demo-forum`, тема `demo-forum-theme`). Цель стенда — показать автоматизированное развёртывание, отказоустойчивость backend-узлов, централизованные backup, мониторинг, логирование и firewall-настройки.
 
 Стенд строится Ansible playbook-ами из каталога `ansible/`. Общий provision запускается через VM `logging`, потому что она последняя в `Vagrantfile` и содержит Ansible provisioner.
 
@@ -57,11 +59,7 @@ flowchart TD
 
 Внешний HTTP/HTTPS-доступ к веб-интерфейсам идёт только через `frontend` по host-only IP `192.168.56.10`. На host OS запись `/etc/hosts` должна указывать `lab.diplom.com` на `192.168.56.10`. Прямые host port forwards для веб-интерфейсов не используются.
 
-WordPress admin credentials:
-
-```text
-admin / DemoAdmin123!
-```
+WordPress admin: логин `admin`. Пароль задаётся через Ansible Vault (`group_vars/all/vault.yml` → `vars.yml`), не дублируется в открытой документации. Просмотр: `ansible-vault view ansible/group_vars/all/vault.yml --vault-password-file ansible/.vault_pass`.
 
 ## Grafana dashboard
 
@@ -166,13 +164,34 @@ Loopback-интерфейс `lo` исключён, чтобы график по�
 1. `ha_shared.yml`
 2. `back.yml`
 3. `front.yml`
-4. `monitoring.yml`
-5. `logging.yml`
+4. `logging.yml`
+5. `monitoring.yml`
 6. `alloy.yml`
 7. `restic_init.yml`
 8. `UFW.yml`
 
-Порядок важен: shared-state на `logging` должен быть готов до настройки backend-ов, потому что backend-ы монтируют NFS и используют DB endpoint.
+Порядок важен: shared-state на `logging` (`ha_shared`) готов до backend; Loki поднимается до Alloy; Node Exporter — до scrape Prometheus; клиентские unit Restic — до `restic_init`; UFW — в конце.
+
+## Образ Vagrant `diplom-ubuntu`
+
+Playbook-и **не скачивают** бинарники из интернета и не распаковывают архивы observability в рантайме. Ожидается предустановленный box `diplom-ubuntu` (см. `Vagrantfile`):
+
+| Компонент | Путь / пакет в образе |
+|-----------|------------------------|
+| Rest Server | `/usr/local/bin/rest-server` |
+| Loki | `/usr/local/bin/loki` |
+| Node Exporter | `/usr/local/bin/node_exporter` |
+| Prometheus, promtool | `/usr/local/bin/prometheus`, `/usr/local/bin/promtool` |
+| Alertmanager | `/usr/local/bin/alertmanager` |
+| Grafana Alloy | `/usr/local/bin/alloy` |
+| NFS, HAProxy, htpasswd | системные пакеты (apt в образе) |
+| WordPress (backend) | `/opt/wordpress_latest-ru_RU.tar.gz` |
+
+При отсутствии бинарника playbook завершается с `assert` и понятным `fail_msg`. Сборка и публикация box — **вне этого репозитория**; здесь зафиксирован только контракт образа.
+
+## Ansible Vault
+
+Секреты в `ansible/group_vars/all/vault.yml` (encrypted). `ansible/group_vars/all/vars.yml` подставляет их в playbooks: `db_*_password`, `restic_password`, `grafana_admin_password`, `alertmanager_smtp_password` и др. Vagrant provisioner использует `ansible/.vault_pass`.
 
 ## Playbook-и
 
@@ -183,9 +202,8 @@ Loopback-интерфейс `lo` исключён, чтобы график по�
 Основные действия:
 
 - создаёт системного пользователя `restic`;
-- устанавливает `nfs-kernel-server`, `haproxy`, `apache2-utils`;
-- открывает ранние UFW allow для `6033`, `2049`, `8000`;
-- устанавливает `rest-server` из `/opt/rest-server.tar.gz`;
+- открывает ранние UFW allow для `6033`, `2049`, `8000` с `from 10.10.10.0/24` (до полного `UFW.yml`);
+- проверяет наличие `/usr/local/bin/rest-server` в box (`assert`);
 - создаёт `/srv/restic` и репозитории `frontend`, `backend_master`, `backend_slave`;
 - создаёт `/etc/restic/.htpasswd` для Basic Auth Rest Server;
 - поднимает `rest-server.service`;
@@ -237,14 +255,14 @@ Loopback-интерфейс `lo` исключён, чтобы график по�
 Первая часть ставит Node Exporter на все VM:
 
 - создаёт пользователя `node_exporter`;
-- устанавливает бинарник из `/opt/node_exporter.tar.gz`;
+- проверяет preinstalled `/usr/local/bin/node_exporter` (`assert`);
 - разворачивает systemd unit;
 - запускает `node_exporter.service`.
 
 Вторая часть настраивает `monitoring`:
 
 - создаёт пользователей `prometheus`, `alertmanager`;
-- ставит Prometheus и Alertmanager из локальных архивов;
+- проверяет preinstalled `/usr/local/bin/prometheus`, `promtool`, `alertmanager` (`assert`);
 - создаёт директории `/etc/prometheus`, `/var/lib/prometheus`, `/etc/alertmanager`, `/var/lib/alertmanager`;
 - разворачивает `prometheus.yml`, alert rules, `alertmanager.yml`;
 - настраивает Grafana, datasources и dashboard provider;
@@ -257,7 +275,7 @@ Loopback-интерфейс `lo` исключён, чтобы график по�
 Действия:
 
 - создаёт пользователя `loki`;
-- устанавливает бинарник из `/opt/loki.zip`;
+- проверяет preinstalled `/usr/local/bin/loki` (`assert`);
 - создаёт `/etc/loki`, `/var/lib/loki`, `/var/lib/loki/compactor`, `/var/log/loki`;
 - создаёт `/var/log/loki/loki.log` для сбора логов самого Loki через Alloy;
 - разворачивает `loki.yml`;
@@ -270,7 +288,7 @@ Loopback-интерфейс `lo` исключён, чтобы график по�
 Действия:
 
 - создаёт пользователя `alloy` и добавляет его в группу `adm`;
-- устанавливает бинарник из `/opt/alloy.zip`;
+- проверяет preinstalled `/usr/local/bin/alloy` (`assert`);
 - создаёт `/etc/alloy` и `/var/lib/alloy`;
 - разворачивает `config.alloy`;
 - разворачивает `alloy.service`;
@@ -287,7 +305,10 @@ Loopback-интерфейс `lo` исключён, чтобы график по�
 
 - ждёт `10.10.10.40:8000`;
 - для `frontend`, `backend_master`, `backend_slave` проверяет snapshots;
-- если репозиторий ещё не создан, выполняет `restic init`.
+- если репозиторий ещё не создан, выполняет `restic init`;
+- для пустого репозитория запускает первый backup (`restic-backup-*.service`).
+
+Инициализация Restic **только** в этом playbook (не в `front.yml` / `back.yml`).
 
 ### `ansible/UFW.yml`
 
@@ -304,7 +325,7 @@ Host-specific правила:
 - `backend-1`: MySQL от `backend-2` и `logging`, HTTP от `frontend`;
 - `backend-2`: MySQL от `backend-1` и `logging`, HTTP от `frontend`;
 - `monitoring`: `9090`, `3000`, `9093` только от `frontend`;
-- `logging`: `3100` от внутренней сети для Alloy и frontend proxy, `8000` от внутренней сети для Restic/frontend proxy, `6033`, `2049`.
+- `logging`: `3100`, `9100`, `8000`, `6033`, `2049` от `10.10.10.0/24` (Loki, Node Exporter scrape, Rest Server, HAProxy, NFS).
 
 ## Шаблоны
 
@@ -356,8 +377,8 @@ Host-specific правила:
 
 - запускается на master по timer;
 - проверяет доступность slave;
-- сравнивает количество таблиц;
-- при грубом расхождении делает dump в сторону узла, где таблиц меньше;
+- сравнивает `MAX(ID)` в `wp_posts` на master и slave;
+- при расхождении делает `mysqldump` в сторону узла с меньшим `MAX(ID)`;
 - защищён lock-файлом, чтобы не запускаться параллельно.
 
 `templates/mysql/wp-ha-db-sync.service.j2`
@@ -366,7 +387,7 @@ Host-specific правила:
 
 `templates/mysql/wp-ha-db-sync.timer.j2`
 
-- запускает sync через 2 минуты после boot и далее раз в минуту.
+- запускает sync через 30 секунд после boot и далее каждые 15 секунд (при расхождении `MAX(ID)` в `wp_posts`).
 
 ### WordPress и PHP-FPM
 
@@ -390,23 +411,22 @@ Host-specific правила:
 `templates/wordpress/demo/forum-demo.sql`
 
 - создаёт стандартные таблицы WordPress;
-- активирует demo forum theme/plugin;
+- активирует demo theme/plugin;
 - создаёт admin user;
-- добавляет стартовые forum messages.
+- добавляет стартовые мемы (`demo_forum_message`) и главную «Главная лента мемов».
 
 `templates/wordpress/demo/wp-content/plugins/demo-forum/demo-forum.php`
 
-- регистрирует custom post type `demo_forum_message`;
-- обрабатывает форму добавления сообщений;
-- предоставляет shortcode `[demo_forum]`;
-- выводит последние сообщения и форму публикации.
+- регистрирует CPT `demo_forum_message`;
+- обрабатывает форму «Добавить мем»;
+- shortcode `[demo_forum]`: блок «Свежие мемы» и форма публикации.
 
 `templates/wordpress/demo/wp-content/themes/demo-forum-theme/*`
 
-- минимальная тема для demo forum;
+- минимальная тема для demo-ленты;
 - `index.php` выводит content страницы;
 - `functions.php` подключает stylesheet;
-- `style.css` задаёт внешний вид форума.
+- `style.css` задаёт внешний вид ленты.
 
 ### HAProxy и Rest Server
 
@@ -457,7 +477,7 @@ Host-specific правила:
 
 `templates/prometheus/prometheus.yml.j2`
 
-- scrape interval 15s;
+- scrape interval 10s;
 - targets: все Node Exporter на `10.10.10.10/20/21/30/40`;
 - подключает alert rules и Alertmanager.
 
@@ -554,6 +574,41 @@ Restore master при потере обоих backend:
 4. Восстанавливает `/tmp/mysql_backups/wp_db_*.sql`.
 5. Импортирует dump в `wordpress_db`.
 6. Если backup отсутствует, импортирует demo seed.
+
+## Автоматический HA-тест (`scripts/ha_posts_test.sh`)
+
+Скрипт из корня репозитория проверяет сохранность пользовательских постов при отказах backend (21 шаг):
+
+| Фаза | Действие | Ожидание |
+|------|----------|----------|
+| A | `vagrant halt backend-1` → пост #1 → `up` | Пост виден на сайте |
+| B | `halt backend-2` → пост #2 → `up` | Оба поста на сайте |
+| C | `destroy backend-1` → пост #3 → `up` + `provision logging` | Три поста, репликация |
+| D | `destroy backend-2` → пост #4 → `up` + `provision logging` | Четыре поста |
+| E | Restic backup → `destroy` оба backend → `vagrant provision` | Все 4 поста после restore |
+
+Отличие от ручного [DEMO_SCRIPT.md](DEMO_SCRIPT.md): скрипт использует **`vagrant halt`** в фазах A–B и **curl** с nonce формы `demo_forum`; ручной сценарий чаще демонстрирует **`vagrant destroy`**. Перед запуском: стенд поднят, `lab.diplom.com` в `/etc/hosts`.
+
+## Соответствие техническому заданию
+
+| Требование ([Техническое задание.txt](../Техническое%20задание.txt)) | Реализация |
+|----------------------------------------------------------------------|------------|
+| 5 VM: frontend, 2 backend, monitoring, logging | `Vagrantfile`, `ansible/hosts.ini` |
+| Vagrant + Ansible | provision на VM `logging` → `ansible/site.yml` |
+| WordPress CMS | `back.yml`, demo seed |
+| Nginx LB + HTTPS (self-signed) | `front.yml` |
+| MySQL replication | `back.yml`, master/slave |
+| Prometheus + Node Exporter + Grafana + Alertmanager + email | `monitoring.yml` |
+| Loki + Alloy | `logging.yml`, `alloy.yml` |
+| DMZ: снаружи 80/443 | `UFW.yml` на frontend |
+| Firewall на узлах | `UFW.yml` (последний в `site.yml`) |
+| Backup | Restic + Rest Server на `logging` |
+
+## Ограничения HA (для защиты)
+
+- MySQL failover через HAProxy **backup** server: slave **writable** (`read_only` off), не классический read-only replica.
+- **`wp-ha-db-sync`** — периодическое выравнивание по `MAX(ID)` в `wp_posts`, не GTID/auto-failover.
+- **`logging`** в demo — persistent SPOF для DB endpoint, NFS, Restic, Loki.
 
 ## Что важно проговорить на защите
 

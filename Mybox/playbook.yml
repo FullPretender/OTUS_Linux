@@ -9,6 +9,7 @@
       - { src: "/opt/loki.zip", dir: "/tmp/loki-extract", pattern: "loki", bin: "loki", path_search: "/loki(-linux-amd64)?$" }
       - { src: "/opt/node_exporter.tar.gz", dir: "/tmp/node-exporter-extract", pattern: "node_exporter", bin: "node_exporter", path_search: "/node_exporter$" }
       - { src: "/opt/prometheus.tar.gz", dir: "/tmp/prometheus-extract", pattern: "prometheus", bin: "prometheus", path_search: "/prometheus$" }
+      - { src: "/opt/prometheus.tar.gz", dir: "/tmp/promtool-extract", pattern: "promtool", bin: "promtool", path_search: "/promtool$" }
       - { src: "/opt/alertmanager.tar.gz", dir: "/tmp/alertmanager-extract", pattern: "alertmanager", bin: "alertmanager", path_search: "/alertmanager$" }
       - { src: "/opt/alloy.zip", dir: "/tmp/alloy-extract", pattern: "alloy", bin: "alloy", path_search: "/alloy(-linux-amd64)?$" }
       - { src: "/opt/rest-server.tar.gz", dir: "/tmp/rest-server-extract", pattern: "rest-server", bin: "rest-server", path_search: "/rest-server$" }
@@ -16,6 +17,7 @@
       - loki
       - node_exporter
       - prometheus
+      - promtool
       - alertmanager
       - alloy
       - rest-server

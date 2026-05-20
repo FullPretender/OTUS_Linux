@@ -111,14 +111,6 @@
             group: root
             mode: '0400'
 
-        - name: Инициализация Restic-репозитория frontend
-          shell: |
-            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" snapshots >/dev/null 2>&1 ||
-            RESTIC_PASSWORD_FILE=/etc/restic_password restic -r "rest:http://{{ restic_server_user }}:{{ restic_server_password }}@10.10.10.40:8000/{{ restic_label }}" init
-          register: restic_init_frontend
-          changed_when: "'created restic repository' in restic_init_frontend.stdout"
-          failed_when: false
-
         - name: Генерация скрипта бэкапа Restic
           template:
             src: templates/restic/restic_backup.sh.j2

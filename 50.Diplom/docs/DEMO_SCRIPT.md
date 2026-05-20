@@ -2,6 +2,10 @@
 
 Документ предназначен для защиты проекта перед кураторами и демонстрации аудитории. Он описывает, что показывать, какие команды выполнять и какой результат ожидать.
 
+См. также: [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](../README.md), автоматический тест [scripts/ha_posts_test.sh](../scripts/ha_posts_test.sh).
+
+**Секреты:** пароли БД, Restic, Grafana и SMTP — в Ansible Vault (`ansible/group_vars/all/vault.yml`). Просмотр: `ansible-vault view ansible/group_vars/all/vault.yml --vault-password-file ansible/.vault_pass`. В командах ниже для MySQL через HAProxy используется `sudo mysql --defaults-file=/root/.my.cnf` на backend VM (без пароля в shell history).
+
 ## Подготовка
 
 На host OS должна быть запись:
@@ -57,25 +61,21 @@ https://lab.diplom.com/
 
 ```bash
 curl -k -I https://lab.diplom.com/
-curl -k https://lab.diplom.com/ | grep "Последние обсуждения"
+curl -k https://lab.diplom.com/ | grep "Свежие мемы"
 ```
 
 Ожидаемый результат:
 
 - HTTP `200` или redirect на HTTPS;
-- на странице виден demo forum;
-- виден блок `Последние обсуждения`.
+- на странице видна демо-лента мемов;
+- виден блок «Свежие мемы» (заголовок главной — «Главная лента мемов»).
 
-Admin credentials:
-
-```text
-admin / DemoAdmin123!
-```
+Admin: логин `admin`, пароль — из Ansible Vault (ключ `vault_*` в `group_vars/all/vault.yml`).
 
 Что рассказать:
 
 - WordPress не установлен вручную через UI.
-- Demo forum разворачивается из SQL seed и заранее подготовленного `wp-content`.
+- Demo-контент разворачивается из SQL seed `forum-demo.sql` и подготовленного `wp-content` на NFS.
 - Это делает чистый запуск воспроизводимым.
 
 ## 3. Проверка frontend load balancer
@@ -122,8 +122,8 @@ vagrant ssh backend-2 -c "mount | grep '10.10.10.40:/srv/wordpress/wp-content'"
 Проверить DB endpoint:
 
 ```bash
-vagrant ssh backend-1 -c "mysql -h 10.10.10.40 -P 6033 -u wp_user -p'WpUserSecure!' -NBe 'SELECT COUNT(*) FROM wordpress_db.wp_posts'"
-vagrant ssh backend-2 -c "mysql -h 10.10.10.40 -P 6033 -u wp_user -p'WpUserSecure!' -NBe 'SELECT COUNT(*) FROM wordpress_db.wp_posts'"
+vagrant ssh backend-1 -c "sudo mysql -h 10.10.10.40 -P 6033 --defaults-file=/root/.my.cnf -NBe 'SELECT COUNT(*) FROM wordpress_db.wp_posts'"
+vagrant ssh backend-2 -c "sudo mysql -h 10.10.10.40 -P 6033 --defaults-file=/root/.my.cnf -NBe 'SELECT COUNT(*) FROM wordpress_db.wp_posts'"
 ```
 
 Ожидаемый результат:
@@ -178,8 +178,8 @@ vagrant ssh logging -c "sudo ss -ltnp | grep ':6033'"
 Проверить, что WordPress DB endpoint доступен через HAProxy:
 
 ```bash
-vagrant ssh backend-1 -c "mysql -h 10.10.10.40 -P 6033 -u wp_user -p'WpUserSecure!' -NBe 'SELECT @@hostname, COUNT(*) FROM wordpress_db.wp_posts'"
-vagrant ssh backend-2 -c "mysql -h 10.10.10.40 -P 6033 -u wp_user -p'WpUserSecure!' -NBe 'SELECT @@hostname, COUNT(*) FROM wordpress_db.wp_posts'"
+vagrant ssh backend-1 -c "sudo mysql -h 10.10.10.40 -P 6033 --defaults-file=/root/.my.cnf -NBe 'SELECT @@hostname, COUNT(*) FROM wordpress_db.wp_posts'"
+vagrant ssh backend-2 -c "sudo mysql -h 10.10.10.40 -P 6033 --defaults-file=/root/.my.cnf -NBe 'SELECT @@hostname, COUNT(*) FROM wordpress_db.wp_posts'"
 ```
 
 Проверить валидность конфига и последние события HAProxy:
@@ -193,7 +193,7 @@ vagrant ssh logging -c "sudo journalctl -u haproxy --since '10 min ago' --no-pag
 
 ```bash
 vagrant destroy -f backend-1
-vagrant ssh backend-2 -c "for i in {1..10}; do mysql -h 10.10.10.40 -P 6033 -u wp_user -p'WpUserSecure!' -NBe 'SELECT @@hostname, COUNT(*) FROM wordpress_db.wp_posts' && break; sleep 2; done"
+vagrant ssh backend-2 -c "for i in {1..10}; do sudo mysql -h 10.10.10.40 -P 6033 --defaults-file=/root/.my.cnf -NBe 'SELECT @@hostname, COUNT(*) FROM wordpress_db.wp_posts' && break; sleep 2; done"
 vagrant ssh logging -c "sudo journalctl -u haproxy --since '5 min ago' --no-pager | egrep -i 'backend_master|backend_slave|down|up' || true"
 vagrant up backend-1
 vagrant provision logging
@@ -243,7 +243,7 @@ curl -k -I https://lab.diplom.com/alertmanager/-/ready
 Grafana credentials:
 
 ```text
-admin / GrafanaSecure!
+admin / `<grafana_admin_password из vault>`
 ```
 
 Что рассказать:
@@ -523,18 +523,20 @@ vagrant ssh backend-2 -c "sudo tail -n 20 /var/log/restic_backup_slave.log"
 
 ### 8.3. Проверить snapshots и содержимое backup
 
+URL репозитория (с паролем Rest Server) уже задан в `/usr/local/bin/restic_backup_*.sh` на каждой VM — не дублируем секрет в документе:
+
 ```bash
-vagrant ssh frontend -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic -r 'rest:http://restic:ResticServerPass!@10.10.10.40:8000/frontend' snapshots"
-vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic -r 'rest:http://restic:ResticServerPass!@10.10.10.40:8000/backend_master' snapshots"
-vagrant ssh backend-2 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic -r 'rest:http://restic:ResticServerPass!@10.10.10.40:8000/backend_slave' snapshots"
+vagrant ssh frontend -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_frontend.sh | head -1); restic -r \"\$RESTIC_REPO\" snapshots'"
+vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_backend_master.sh | head -1); restic -r \"\$RESTIC_REPO\" snapshots'"
+vagrant ssh backend-2 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_backend_slave.sh | head -1); restic -r \"\$RESTIC_REPO\" snapshots'"
 ```
 
 Показать, что внутри snapshot есть конфиги и SQL dump:
 
 ```bash
-vagrant ssh frontend -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic -r 'rest:http://restic:ResticServerPass!@10.10.10.40:8000/frontend' ls latest | egrep '/etc/nginx|lab.crt|lab.key'"
-vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic -r 'rest:http://restic:ResticServerPass!@10.10.10.40:8000/backend_master' ls latest | egrep '/tmp/mysql_backups|wp_db_.*\\.sql|/var/www/wordpress'"
-vagrant ssh backend-2 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic -r 'rest:http://restic:ResticServerPass!@10.10.10.40:8000/backend_slave' ls latest | egrep '/tmp/mysql_backups|wp_db_slave_.*\\.sql|wp-content'"
+vagrant ssh frontend -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_frontend.sh | head -1); restic -r \"\$RESTIC_REPO\" ls latest' | egrep '/etc/nginx|lab.crt|lab.key'"
+vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_backend_master.sh | head -1); restic -r \"\$RESTIC_REPO\" ls latest' | egrep '/tmp/mysql_backups|wp_db_.*\\.sql|/var/www/wordpress'"
+vagrant ssh backend-2 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_backend_slave.sh | head -1); restic -r \"\$RESTIC_REPO\" ls latest' | egrep '/tmp/mysql_backups|wp_db_slave_.*\\.sql|wp-content'"
 ```
 
 Ожидаемый результат:
@@ -548,7 +550,7 @@ vagrant ssh backend-2 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic 
 
 ```bash
 vagrant ssh backend-1 -c "sudo rm -rf /tmp/restic-demo-restore && sudo mkdir -p /tmp/restic-demo-restore"
-vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password restic -r 'rest:http://restic:ResticServerPass!@10.10.10.40:8000/backend_master' restore latest --target /tmp/restic-demo-restore --path /tmp/mysql_backups"
+vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_backend_master.sh | head -1); restic -r \"\$RESTIC_REPO\" restore latest --target /tmp/restic-demo-restore --path /tmp/mysql_backups'"
 vagrant ssh backend-1 -c "sudo find /tmp/restic-demo-restore -type f -name 'wp_db_*.sql' -print | tail -n 5"
 vagrant ssh backend-1 -c "sudo rm -rf /tmp/restic-demo-restore"
 ```
@@ -598,14 +600,14 @@ vagrant provision logging
 
 ```bash
 vagrant ssh backend-2 -c "sudo mysql --defaults-file=/root/.my.cnf -e 'SHOW SLAVE STATUS\\G' | egrep 'Slave_IO_Running|Slave_SQL_Running|Seconds_Behind_Master'"
-curl -k https://lab.diplom.com/ | grep "Последние обсуждения"
+curl -k https://lab.diplom.com/ | grep "Свежие мемы"
 ```
 
 Ожидаемый результат:
 
 - сайт продолжает работать через `backend-1`;
 - после восстановления slave снова `Yes/Yes`;
-- данные форума не потеряны.
+- данные ленты мемов не потеряны.
 
 Важно: сразу после destroy может быть короткий timeout, пока frontend исключает недоступный upstream. Повторный запрос должен дать `200`.
 
@@ -687,7 +689,7 @@ vagrant provision logging
 
 ```bash
 vagrant ssh backend-1 -c "sudo mysql --defaults-file=/root/.my.cnf -NBe \"SELECT COUNT(*) FROM wordpress_db.wp_posts WHERE post_type='demo_forum_message' AND post_status='publish'\""
-curl -k https://lab.diplom.com/ | grep "Последние обсуждения"
+curl -k https://lab.diplom.com/ | grep "Свежие мемы"
 ```
 
 Ожидаемый результат:
@@ -723,9 +725,37 @@ vagrant ssh backend-2 -c "sudo mysql --defaults-file=/root/.my.cnf -e 'SHOW SLAV
 - monitoring, logging и Alloy services active;
 - replication healthy.
 
+## 14. Автоматический HA-тест (`scripts/ha_posts_test.sh`)
+
+После полного развёртывания стенда можно прогнать автоматизированную проверку отказоустойчивости (21 шаг, ~15–30 минут в зависимости от скорости VM):
+
+```bash
+./scripts/ha_posts_test.sh
+```
+
+**Предусловия:** все VM `running`, в `/etc/hosts` есть `lab.diplom.com` → `192.168.56.10`.
+
+**Что делает скрипт:**
+
+| Фаза | Действие |
+|------|----------|
+| A | `vagrant halt backend-1` → публикация поста «HA Test Post 1» → `vagrant up backend-1` |
+| B | `halt backend-2` → пост #2 → `up backend-2` |
+| C | `destroy backend-1` → пост #3 → `up` + `vagrant provision logging` |
+| D | `destroy backend-2` → пост #4 → `up` + `provision logging` |
+| E | Restic backup → `destroy` оба backend → `vagrant provision` → проверка всех 4 постов |
+
+Посты создаются через **curl** и форму `demo_forum` (nonce). При ожидании данных вызывается `wp-ha-db-sync.service` на master.
+
+**Ожидаемый результат:** в конце на https://lab.diplom.com/ видны заголовки `HA Test Post 1` … `HA Test Post 4`; скрипт завершается сообщением `HA posts test completed successfully`.
+
+**Отличие от ручных сценариев §9–10:** здесь в фазах A–B используется **`vagrant halt`** (быстрее), а не только `destroy`; полное уничтожение обоих backend — только в фазе E с восстановлением из Restic.
+
+Подробности архитектуры: [ARCHITECTURE.md](ARCHITECTURE.md#автоматический-ha-тест-scriptsha_posts_testsh).
+
 ## Короткий рассказ для аудитории
 
-1. Сначала показываем WordPress-форум.
+1. Сначала показываем WordPress и демо-ленту мемов.
 2. Затем объясняем, что frontend балансирует трафик между двумя backend.
 3. Показываем, что shared files вынесены на NFS.
 4. Показываем, что БД доступна через HAProxy endpoint.
@@ -738,7 +768,7 @@ vagrant ssh backend-2 -c "sudo mysql --defaults-file=/root/.my.cnf -e 'SHOW SLAV
 ## Что подчеркнуть в выводах
 
 - Проект воспроизводим: чистый `vagrant up` разворачивает готовый demo service.
-- WordPress не пустой: сразу доступен demo forum.
+- WordPress не пустой: сразу доступна demo-лента мемов.
 - Backend-ы можно пересоздавать без ручного восстановления.
 - `monitoring` отделён от runtime shared-state.
 - Backup-и не просто создаются, а участвуют в восстановлении БД.

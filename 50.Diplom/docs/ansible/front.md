@@ -49,8 +49,9 @@ Playbook настраивает входную точку WordPress:
 Блок настраивает клиентский backup frontend-узла.
 
 - `Размещение файла пароля Restic` создает `/etc/restic_password` с правами `0400`. Файл используется командами Restic через `RESTIC_PASSWORD_FILE`.
-- `Инициализация Restic-репозитория frontend` проверяет наличие репозитория через `restic snapshots`; если команда неуспешна, выполняет `restic init`. `failed_when: false` не валит playbook, чтобы сценарий оставался терпимым к временной недоступности Rest Server на этом этапе.
 - `Генерация скрипта бэкапа Restic` рендерит `templates/restic/restic_backup.sh.j2` в `/usr/local/bin/restic_backup_frontend.sh` с правами `0755`.
+
+Инициализация репозитория (`restic init`) и первый backup при пустом repo — только в [`restic_init.yml`](restic_init.md).
 - `Развертывание systemd-юнитов Restic` создает `restic-backup-frontend.service` и `restic-backup-frontend.timer` из общих шаблонов `templates/restic/restic-backup.*.j2`. `loop: [service, timer]` исключает дублирование двух почти одинаковых задач.
 - `Активация таймера Restic` запускает и включает `restic-backup-frontend.timer`, чтобы backup выполнялся регулярно.
 

@@ -2,9 +2,10 @@
 Description=Периодическое выравнивание БД WordPress (HA)
 
 [Timer]
-OnBootSec=2min
-OnUnitActiveSec=1min
-AccuracySec=30s
+# Даём MySQL подняться после boot; далее частая проверка MAX(ID) для сценария halt/up
+OnBootSec=30s
+OnUnitActiveSec=15s
+AccuracySec=5s
 
 [Install]
 WantedBy=timers.target

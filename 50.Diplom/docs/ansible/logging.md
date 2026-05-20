@@ -13,7 +13,7 @@
 Playbook разворачивает Grafana Loki как централизованное хранилище логов:
 
 1. Создает системного пользователя `loki`.
-2. Устанавливает бинарник Loki из локального архива.
+2. Проверяет preinstalled бинарник Loki в box `diplom-ubuntu`.
 3. Создает директории конфигурации, данных и логов.
 4. Разворачивает `loki.yml` и systemd unit.
 5. Запускает и включает `loki.service`.
@@ -22,7 +22,7 @@ Playbook разворачивает Grafana Loki как централизова
 
 - `Создание пользователя loki` создает системного пользователя без shell и home directory. От него работает сервис Loki.
 - `Проверка наличия бинарника Loki` проверяет `/usr/local/bin/loki` и сохраняет результат в `loki_stat`, чтобы установка была идемпотентной.
-- `Установить бинарник Loki из box-архива` извлекает Loki из `/opt/loki.zip`, ищет member с именем `loki` или `loki-linux-amd64`, записывает его в `/usr/local/bin/loki` и выставляет права `0755`. Выполняется только если бинарника еще нет, и вызывает `Restart Loki`.
+- `Проверка бинарника Loki в box-образе` — `assert`, что `/usr/local/bin/loki` существует и executable.
 - `Создание директорий Loki` создает `/etc/loki`, `/var/lib/loki`, `/var/lib/loki/compactor`, `/var/log/loki` с владельцем `loki:loki`. Эти каталоги нужны для конфига, хранения индексов/чанков, compactor и логов сервиса.
 - `Создать log-файл Loki для централизованного сбора` создает `/var/log/loki/loki.log`, владельцем делает `loki`, группой `adm`, правами `0640`. Группа `adm` важна, чтобы агент сбора логов мог читать файл.
 - `Развернуть loki.yml` рендерит `templates/loki/loki.yml.j2` в `/etc/loki/loki.yml` и вызывает `Restart Loki`.
@@ -44,7 +44,6 @@ Playbook разворачивает Grafana Loki как централизова
 
 - `ansible/templates/loki/loki.yml.j2`
 - `ansible/templates/loki/loki.service.j2`
-- `/opt/loki.zip`
 - `/usr/local/bin/loki`
 - `/etc/loki/loki.yml`
 - `/var/lib/loki`

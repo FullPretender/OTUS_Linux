@@ -25,22 +25,21 @@ if ! timeout 3 bash -c "echo >/dev/tcp/${SLAVE_IP}/3306" 2>/dev/null; then
   exit 0
 fi
 
-count_local() {
-  $MYSQL -NBe "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}'" 2>/dev/null || echo 0
+wp_posts_max_id() {
+  local host_arg=()
+  [[ -n "${1:-}" ]] && host_arg=(-h "$1")
+  $MYSQL "${host_arg[@]}" -NBe \
+    "SELECT COALESCE(MAX(ID),0) FROM ${DB_NAME}.wp_posts" 2>/dev/null || echo 0
 }
 
-count_remote() {
-  $MYSQL -h "$SLAVE_IP" -NBe "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}'" 2>/dev/null || echo 0
-}
-
-LOCAL=$(count_local)
-REMOTE=$(count_remote)
+LOCAL=$(wp_posts_max_id)
+REMOTE=$(wp_posts_max_id "$SLAVE_IP")
 
 if [[ "$LOCAL" == "$REMOTE" ]]; then
   exit 0
 fi
 
-log "Расхождение таблиц: master=${LOCAL} slave=${REMOTE}, синхронизация..."
+log "Расхождение wp_posts MAX(ID): master=${LOCAL} slave=${REMOTE}, синхронизация..."
 
 if [[ "$LOCAL" -gt "$REMOTE" ]]; then
   log "Master → Slave"

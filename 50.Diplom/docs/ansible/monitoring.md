@@ -16,9 +16,9 @@
 
 Playbook разворачивает метрики и визуализацию:
 
-1. На каждом узле создает пользователя `node_exporter`, устанавливает Node Exporter из локального архива, создает textfile collector и systemd unit.
+1. На каждом узле создает пользователя `node_exporter`, проверяет preinstalled Node Exporter в box `diplom-ubuntu`, создает textfile collector и systemd unit.
 2. На monitoring-узле создает пользователей `prometheus` и `alertmanager`.
-3. Устанавливает Prometheus и Alertmanager из локальных архивов.
+3. Проверяет preinstalled Prometheus, promtool и Alertmanager (`assert`).
 4. Разворачивает конфиги Prometheus, alert rules, Alertmanager и Grafana provisioning.
 5. Создает systemd units и запускает Prometheus, Alertmanager и Grafana.
 
@@ -29,7 +29,7 @@ Playbook разворачивает метрики и визуализацию:
 - `Создание пользователя node_exporter` создает системного пользователя без интерактивного shell. Сервис Node Exporter работает от отдельного пользователя, а не от root.
 - `Создать директорию textfile collector` создает `/var/lib/node_exporter/textfile_collector`. Эта директория нужна для дополнительных метрик в формате `.prom`, которые могут складывать другие скрипты.
 - `Проверка наличия бинарника Node Exporter` проверяет `/usr/local/bin/node_exporter` и сохраняет результат в `node_exporter_stat`.
-- `Установить бинарник Node Exporter из box-архива` извлекает бинарник из `/opt/node_exporter.tar.gz` в `/usr/local/bin/node_exporter`. Команда ищет member архива, заканчивающийся на `/node_exporter`, и выставляет права `0755`. Выполняется только если бинарника еще нет, и вызывает `Restart Node Exporter`.
+- `Проверка бинарника Node Exporter в box-образе` — `assert`, что `/usr/local/bin/node_exporter` существует и executable (предустановлен в `diplom-ubuntu`).
 - `Развернуть systemd-юнит Node Exporter` рендерит `templates/node_exporter/node_exporter.service.j2` в `/etc/systemd/system/node_exporter.service` и вызывает `Reload systemd`.
 - `Активация и запуск Node Exporter` запускает `node_exporter.service`, включает автозапуск и делает `daemon_reload`.
 
@@ -37,10 +37,10 @@ Playbook разворачивает метрики и визуализацию:
 
 - `Создание пользователей для сервисов` создает системных пользователей `prometheus` и `alertmanager` через `loop`. Каждый сервис получает отдельного пользователя.
 - `Проверка наличия бинарника Prometheus` проверяет `/usr/local/bin/prometheus` и сохраняет результат в `prometheus_stat`.
-- `Установить бинарники Prometheus из box-архива` извлекает `prometheus` и `promtool` из `/opt/prometheus.tar.gz`. `promtool` нужен для проверки конфигураций и правил Prometheus. При установке вызывает `Restart Prometheus`.
+- `Проверка бинарников Prometheus в box-образе` — `assert` для `/usr/local/bin/prometheus` и `/usr/local/bin/promtool`.
 - `Создать директории Prometheus` создает `/etc/prometheus` для конфигурации и `/var/lib/prometheus` для данных TSDB.
 - `Проверка наличия бинарника Alertmanager` проверяет `/usr/local/bin/alertmanager`.
-- `Установить бинарник Alertmanager из box-архива` извлекает бинарник из `/opt/alertmanager.tar.gz` в `/usr/local/bin/alertmanager`, если он отсутствует.
+- `Проверка бинарника Alertmanager в box-образе` — `assert` для `/usr/local/bin/alertmanager`.
 - `Создать директории Alertmanager` создает `/etc/alertmanager` и `/var/lib/alertmanager` для конфигурации и runtime-данных.
 - `Развернуть prometheus.yml` рендерит основной конфиг Prometheus в `/etc/prometheus/prometheus.yml`. В нем задаются scrape targets и подключение alert rules.
 - `Развернуть alert_rules.yml` рендерит правила алертов в `/etc/prometheus/alert_rules.yml`.
@@ -81,9 +81,10 @@ Playbook разворачивает метрики и визуализацию:
 - `ansible/templates/grafana/grafana-datasources.yml.j2`
 - `ansible/templates/grafana/grafana-dashboards.yml.j2`
 - `ansible/templates/grafana/node-overview-dashboard.json.j2`
-- `/opt/node_exporter.tar.gz`
-- `/opt/prometheus.tar.gz`
-- `/opt/alertmanager.tar.gz`
+- `/usr/local/bin/node_exporter`
+- `/usr/local/bin/prometheus`
+- `/usr/local/bin/promtool`
+- `/usr/local/bin/alertmanager`
 - `/etc/prometheus`
 - `/etc/alertmanager`
 - `/etc/grafana/provisioning`

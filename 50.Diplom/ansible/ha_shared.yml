@@ -11,6 +11,7 @@
         shell: /usr/sbin/nologin
         create_home: no
 
+    # Re-provision: UFW уже включён с прошлого прогона; полный набор правил — в UFW.yml в конце site.yml
     - name: Разрешение DB endpoint и NFS до монтирования backend-узлами
       ansible.builtin.command: "ufw allow from 10.10.10.0/24 to any port {{ item }} proto tcp"
       loop:
@@ -25,18 +26,12 @@
         path: /usr/local/bin/rest-server
       register: rest_server_stat
 
-    - name: Установить бинарник Rest Server из box-архива
-      ansible.builtin.shell: |
-        set -eu
-        archive="/opt/rest-server.tar.gz"
-        member=$(tar -tzf "$archive" | grep '/rest-server$' | head -n 1)
-        test -n "$member"
-        tar -xzf "$archive" -O "$member" > /usr/local/bin/rest-server
-        chmod 0755 /usr/local/bin/rest-server
-      args:
-        creates: /usr/local/bin/rest-server
-      when: not rest_server_stat.stat.exists
-      notify: Restart Rest Server
+    - name: Проверка бинарника Rest Server в box-образе
+      ansible.builtin.assert:
+        that:
+          - rest_server_stat.stat.exists
+          - rest_server_stat.stat.executable
+        fail_msg: "Бинарник /usr/local/bin/rest-server должен быть предустановлен в образе diplom-ubuntu"
 
     - name: Создать директорию для репозиториев Restic
       ansible.builtin.file:
@@ -125,9 +120,8 @@
         mode: '0644'
       notify: Reload NFS exports
 
-    - name: Применение NFS exports
-      ansible.builtin.command: exportfs -ra
-      changed_when: false
+    - name: Применить NFS exports перед стартом nfs-server
+      ansible.builtin.meta: flush_handlers
 
     - name: Активация NFS Server
       ansible.builtin.systemd:

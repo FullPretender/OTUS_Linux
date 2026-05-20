@@ -20,22 +20,16 @@
         mode: '0755'
 
     - name: Проверка наличия бинарника Node Exporter
-      stat:
+      ansible.builtin.stat:
         path: /usr/local/bin/node_exporter
       register: node_exporter_stat
 
-    - name: Установить бинарник Node Exporter из box-архива
-      shell: |
-        set -eu
-        archive="/opt/node_exporter.tar.gz"
-        member=$(tar -tzf "$archive" | grep '/node_exporter$' | head -n 1)
-        test -n "$member"
-        tar -xzf "$archive" -O "$member" > /usr/local/bin/node_exporter
-        chmod 0755 /usr/local/bin/node_exporter
-      args:
-        creates: /usr/local/bin/node_exporter
-      when: not node_exporter_stat.stat.exists
-      notify: Restart Node Exporter
+    - name: Проверка бинарника Node Exporter в box-образе
+      ansible.builtin.assert:
+        that:
+          - node_exporter_stat.stat.exists
+          - node_exporter_stat.stat.executable
+        fail_msg: "Бинарник /usr/local/bin/node_exporter должен быть предустановлен в образе diplom-ubuntu"
 
     - name: Развернуть systemd-юнит Node Exporter
       template:
@@ -54,8 +48,6 @@
         daemon_reload: yes
 
   handlers:
-    - name: Restart Node Exporter
-      systemd: { name: node_exporter.service, state: restarted, daemon_reload: yes }
     - name: Reload systemd
       systemd: { daemon_reload: yes }
 
@@ -74,24 +66,23 @@
       loop: [prometheus, alertmanager]
 
     - name: Проверка наличия бинарника Prometheus
-      stat:
+      ansible.builtin.stat:
         path: /usr/local/bin/prometheus
       register: prometheus_stat
 
-    - name: Установить бинарники Prometheus из box-архива
-      shell: |
-        set -eu
-        archive="/opt/prometheus.tar.gz"
-        prom=$(tar -tzf "$archive" | grep '/prometheus$' | head -n 1)
-        tool=$(tar -tzf "$archive" | grep '/promtool$' | head -n 1)
-        test -n "$prom" && test -n "$tool"
-        tar -xzf "$archive" -O "$prom" > /usr/local/bin/prometheus
-        tar -xzf "$archive" -O "$tool" > /usr/local/bin/promtool
-        chmod 0755 /usr/local/bin/prometheus /usr/local/bin/promtool
-      args:
-        creates: /usr/local/bin/prometheus
-      when: not prometheus_stat.stat.exists
-      notify: Restart Prometheus
+    - name: Проверка наличия бинарника promtool
+      ansible.builtin.stat:
+        path: /usr/local/bin/promtool
+      register: promtool_stat
+
+    - name: Проверка бинарников Prometheus в box-образе
+      ansible.builtin.assert:
+        that:
+          - prometheus_stat.stat.exists
+          - prometheus_stat.stat.executable
+          - promtool_stat.stat.exists
+          - promtool_stat.stat.executable
+        fail_msg: "Бинарники /usr/local/bin/prometheus и promtool должны быть предустановлены в образе diplom-ubuntu"
 
     - name: Создать директории Prometheus
       file:
@@ -103,22 +94,16 @@
       loop: [/etc/prometheus, /var/lib/prometheus]
 
     - name: Проверка наличия бинарника Alertmanager
-      stat:
+      ansible.builtin.stat:
         path: /usr/local/bin/alertmanager
       register: alertmanager_stat
 
-    - name: Установить бинарник Alertmanager из box-архива
-      shell: |
-        set -eu
-        archive="/opt/alertmanager.tar.gz"
-        member=$(tar -tzf "$archive" | grep '/alertmanager$' | head -n 1)
-        test -n "$member"
-        tar -xzf "$archive" -O "$member" > /usr/local/bin/alertmanager
-        chmod 0755 /usr/local/bin/alertmanager
-      args:
-        creates: /usr/local/bin/alertmanager
-      when: not alertmanager_stat.stat.exists
-      notify: Restart Alertmanager
+    - name: Проверка бинарника Alertmanager в box-образе
+      ansible.builtin.assert:
+        that:
+          - alertmanager_stat.stat.exists
+          - alertmanager_stat.stat.executable
+        fail_msg: "Бинарник /usr/local/bin/alertmanager должен быть предустановлен в образе diplom-ubuntu"
 
     - name: Создать директории Alertmanager
       file:
@@ -231,9 +216,6 @@
         - grafana-server.service
 
   handlers:
-    - name: Reload UFW
-      command: ufw reload
-      changed_when: false
     - name: Restart Prometheus
       systemd: { name: prometheus.service, state: restarted, daemon_reload: yes }
     - name: Restart Alertmanager

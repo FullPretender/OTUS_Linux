@@ -13,7 +13,7 @@
 Playbook разворачивает Grafana Alloy на всех узлах как агент сбора логов:
 
 1. Создает системного пользователя `alloy` и добавляет его в группу `adm`.
-2. Устанавливает бинарник Alloy из локального zip-архива.
+2. Проверяет preinstalled бинарник Alloy в box `diplom-ubuntu`.
 3. Создает директории конфигурации и данных.
 4. Разворачивает `config.alloy` и systemd unit.
 5. Дает Alloy права на чтение PHP-FPM и Grafana логов, если они есть.
@@ -24,7 +24,7 @@ Playbook разворачивает Grafana Alloy на всех узлах ка�
 
 - `Создание пользователя alloy` создает системного пользователя без shell и home directory. Параметры `groups: adm` и `append: yes` добавляют пользователя в группу `adm`, не удаляя другие группы. Это нужно для чтения системных логов.
 - `Проверка наличия бинарника Alloy` проверяет `/usr/local/bin/alloy` и сохраняет результат в `alloy_stat`.
-- `Установить бинарник Alloy из box-архива` извлекает бинарник из `/opt/alloy.zip`, ищет `alloy` или `alloy-linux-amd64`, записывает его в `/usr/local/bin/alloy` и выставляет права `0755`. Выполняется только если бинарника еще нет, вызывает `Restart Alloy`.
+- `Проверка бинарника Alloy в box-образе` — `assert`, что `/usr/local/bin/alloy` существует и executable.
 - `Создание директорий Alloy` через `loop` создает `/etc/alloy` с владельцем `root:root` и `/var/lib/alloy` с владельцем `alloy:alloy`. Первая директория хранит конфигурацию, вторая — runtime/state данные агента.
 - `Развернуть config.alloy` рендерит `templates/alloy/config.alloy.j2` в `/etc/alloy/config.alloy`, владельцем оставляет `root`, группой ставит `alloy`, права `0640`. При изменении вызывает `Restart Alloy`.
 - `Развернуть systemd-юнит Alloy` рендерит `templates/alloy/alloy.service.j2` в `/etc/systemd/system/alloy.service` и вызывает `Reload systemd`.
@@ -57,7 +57,6 @@ Playbook разворачивает Grafana Alloy на всех узлах ка�
 
 - `ansible/templates/alloy/config.alloy.j2`
 - `ansible/templates/alloy/alloy.service.j2`
-- `/opt/alloy.zip`
 - `/usr/local/bin/alloy`
 - `/etc/alloy/config.alloy`
 - `/var/lib/alloy`

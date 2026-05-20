@@ -11,6 +11,8 @@
 
 ## Что делает playbook
 
+**Единственное место** `restic init` и первого backup для пустого репозитория в проекте (не в `front.yml` / `back.yml`).
+
 Playbook выполняет bootstrap Restic после запуска Rest Server:
 
 1. Дожидается доступности Rest Server на `10.10.10.40:8000`.

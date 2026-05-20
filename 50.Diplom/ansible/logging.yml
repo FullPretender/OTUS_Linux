@@ -12,22 +12,16 @@
         create_home: no
 
     - name: Проверка наличия бинарника Loki
-      stat:
+      ansible.builtin.stat:
         path: /usr/local/bin/loki
       register: loki_stat
 
-    - name: Установить бинарник Loki из box-архива
-      shell: |
-        set -eu
-        archive="/opt/loki.zip"
-        member=$(unzip -Z1 "$archive" | grep -E '(^|/)loki(-linux-amd64)?$' | head -n 1)
-        test -n "$member"
-        unzip -p "$archive" "$member" > /usr/local/bin/loki
-        chmod 0755 /usr/local/bin/loki
-      args:
-        creates: /usr/local/bin/loki
-      when: not loki_stat.stat.exists
-      notify: Restart Loki
+    - name: Проверка бинарника Loki в box-образе
+      ansible.builtin.assert:
+        that:
+          - loki_stat.stat.exists
+          - loki_stat.stat.executable
+        fail_msg: "Бинарник /usr/local/bin/loki должен быть предустановлен в образе diplom-ubuntu"
 
     - name: Создание директорий Loki
       file:

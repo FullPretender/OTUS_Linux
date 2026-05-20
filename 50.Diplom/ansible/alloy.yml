@@ -14,22 +14,16 @@
         append: yes
 
     - name: Проверка наличия бинарника Alloy
-      stat:
+      ansible.builtin.stat:
         path: /usr/local/bin/alloy
       register: alloy_stat
 
-    - name: Установить бинарник Alloy из box-архива
-      shell: |
-        set -eu
-        archive="/opt/alloy.zip"
-        member=$(unzip -Z1 "$archive" | grep -E '(^|/)alloy(-linux-amd64)?$' | head -n 1)
-        test -n "$member"
-        unzip -p "$archive" "$member" > /usr/local/bin/alloy
-        chmod 0755 /usr/local/bin/alloy
-      args:
-        creates: /usr/local/bin/alloy
-      when: not alloy_stat.stat.exists
-      notify: Restart Alloy
+    - name: Проверка бинарника Alloy в box-образе
+      ansible.builtin.assert:
+        that:
+          - alloy_stat.stat.exists
+          - alloy_stat.stat.executable
+        fail_msg: "Бинарник /usr/local/bin/alloy должен быть предустановлен в образе diplom-ubuntu"
 
     - name: Создание директорий Alloy
       file:
@@ -93,14 +87,6 @@
 
     - name: Сбор фактов о сервисах
       ansible.builtin.service_facts:
-
-    - name: Отключить старый Promtail, если он установлен
-      systemd:
-        name: promtail.service
-        state: stopped
-        enabled: no
-        daemon_reload: yes
-      when: "'promtail.service' in ansible_facts.services"
 
     - name: Активация и запуск Alloy
       systemd:
