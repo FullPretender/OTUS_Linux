@@ -10,13 +10,11 @@
     # =============================================================================
     - name: "1. MySQL — базовая настройка"
       block:
-        # Re-provision: UFW уже включён с прошлого прогона; полный набор правил — в UFW.yml в конце site.yml
         - name: Разрешение DB proxy к MySQL до проверки HAProxy
           ansible.builtin.command: "ufw allow from 10.10.10.40 to any port 3306 proto tcp"
           changed_when: false
           failed_when: false
 
-        # zz-* в mysql.conf.d грузится ПОСЛЕ mysqld.cnf (иначе bind-address снова 127.0.0.1)
         - name: Развертывание конфигурации MySQL
           template:
             src: "templates/mysql/mysql_{{ db_role }}.cnf.j2"
@@ -83,7 +81,6 @@
     # =============================================================================
     - name: "2. WordPress — база данных (только Master)"
       block:
-        # БД и пользователь WP создаются только на Master — на Slave приедут по репликации
         - name: Создание БД для WordPress
           community.mysql.mysql_db:
             name: "{{ db_wp_name }}"
@@ -319,7 +316,7 @@
             path: "/var/www/wordpress/wp-content"
             src: "10.10.10.40:/srv/wordpress/wp-content"
             fstype: nfs4
-            opts: "rw,vers=4,soft,timeo=50,retrans=2,noatime"
+            opts: "rw,vers=4,soft,timeo=50,retrans=2,noatime,_netdev,noauto"
             state: mounted
           register: wp_content_nfs_mount
           until: wp_content_nfs_mount is succeeded
@@ -331,6 +328,64 @@
           register: wp_content_mount_source
           changed_when: false
           failed_when: "'10.10.10.40' not in wp_content_mount_source.stdout"
+
+        - name: Скрипт монтирования wp-content с повторами при загрузке
+          ansible.builtin.template:
+            src: templates/wordpress/wordpress-wp-content-mount.sh.j2
+            dest: /usr/local/bin/wordpress-wp-content-mount.sh
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Systemd unit для wp-content NFS
+          ansible.builtin.template:
+            src: templates/wordpress/wordpress-wp-content-mount.service.j2
+            dest: /etc/systemd/system/wordpress-wp-content-mount.service
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Reload systemd
+
+        - name: Каталог drop-in systemd для nginx
+          ansible.builtin.file:
+            path: /etc/systemd/system/nginx.service.d
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Nginx стартует только после монтирования wp-content
+          ansible.builtin.template:
+            src: templates/wordpress/systemd-require-wp-content-mount.conf.j2
+            dest: /etc/systemd/system/nginx.service.d/wp-content-mount.conf
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Reload systemd
+
+        - name: Каталог drop-in systemd для PHP-FPM
+          ansible.builtin.file:
+            path: /etc/systemd/system/php8.1-fpm.service.d
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: PHP-FPM стартует только после монтирования wp-content
+          ansible.builtin.template:
+            src: templates/wordpress/systemd-require-wp-content-mount.conf.j2
+            dest: /etc/systemd/system/php8.1-fpm.service.d/wp-content-mount.conf
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Reload systemd
+
+        - name: Активация сервиса монтирования wp-content
+          ansible.builtin.systemd:
+            name: wordpress-wp-content-mount.service
+            enabled: true
+            daemon_reload: true
+            state: started
 
         - name: Генерация wp-config.php
           template:
@@ -385,7 +440,6 @@
             state: absent
           notify: Restart Nginx Backend
 
-        # Проверка конфига до старта — иначе nginx не поднимется, а задача «started» пройдёт тихо
         - name: Проверка конфигурации Nginx
           ansible.builtin.command: nginx -t
           changed_when: false
@@ -451,7 +505,6 @@
     # =============================================================================
     - name: "7. MySQL — репликация (только Slave)"
       block:
-        # Одинаковый server-uuid в Vagrant box → репликация IO не стартует
         - name: Пересоздание server_uuid на Slave (однократно)
           ansible.builtin.shell: |
             systemctl stop mysql
@@ -485,7 +538,6 @@
           failed_when: false
           when: db_role == 'slave'
 
-        # Сброс «битой» репликации (ошибка MTA / одинаковый UUID) перед повторной настройкой
         - name: Сброс репликации MySQL на Slave при ошибке
           ansible.builtin.shell: |
             mysql --defaults-file=/root/.my.cnf -e "STOP SLAVE; RESET SLAVE ALL;"
@@ -517,7 +569,6 @@
     # =============================================================================
     - name: "8. MySQL — начальная синхронизация данных (Slave)"
       block:
-        # Проверяем wp_options: БД может существовать, но таблицы пустые (после сбоя репликации)
         - name: Проверка таблиц WordPress на Slave
           ansible.builtin.shell: >
             mysql --defaults-file=/root/.my.cnf -NBe
@@ -635,7 +686,6 @@
             sql_log_bin: false
           when: db_role == 'slave'
 
-        # Root с peer-IP для автоматического mysqldump между узлами (см. wp-ha-db-sync)
         - name: Разрешение root MySQL с peer-узла для HA-синхронизации
           community.mysql.mysql_user:
             name: root

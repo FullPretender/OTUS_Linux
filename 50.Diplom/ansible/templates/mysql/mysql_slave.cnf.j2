@@ -3,7 +3,6 @@ server-id = 2
 relay-log = mysql-relay-bin
 log_slave_updates = 1
 bind-address = 0.0.0.0
-{# read_only убран: при отказе master WordPress на slave пишет сессии/куки в локальную БД #}
 binlog_format = ROW
 auto_increment_increment = 2
 auto_increment_offset = 2

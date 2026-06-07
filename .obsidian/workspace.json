@@ -4,21 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "e99225360d3fd04c",
+        "id": "62c1aefb934909b8",
         "type": "tabs",
         "children": [
           {
-            "id": "35f37d2d87cb2b83",
+            "id": "b5f40306a53dc243",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "50.Diplom/docs/DEMO_SCRIPT.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "DEMO_SCRIPT"
+              "title": "Новая вкладка"
             }
           }
         ]
@@ -94,17 +90,16 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "50.Diplom/docs/DEMO_SCRIPT.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
                 "showSearch": false,
                 "searchQuery": "",
-                "backlinkCollapsed": false,
+                "backlinkCollapsed": true,
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Обратные ссылки для DEMO_SCRIPT"
+              "title": "Обратные ссылки"
             }
           },
           {
@@ -182,10 +177,20 @@
       "bases:Создать новую базу": false
     }
   },
-  "active": "35f37d2d87cb2b83",
+  "active": "b5f40306a53dc243",
   "lastOpenFiles": [
+    "50.Diplom/README.md",
+    "Без названия.base",
     "50.Diplom/docs/ARCHITECTURE.md",
-    "30.iptables/README.md",
-    "50.Diplom/docs/DEMO_SCRIPT.md"
+    "50.Diplom/docs/DEMO_SCRIPT.md",
+    "50.Diplom/docs/ansible/back.md",
+    "19. Docker/README.md",
+    "50.Diplom/ansible/templates/wordpress/systemd-require-wp-content-mount.conf.j2",
+    "50.Diplom/ansible/templates/wordpress/wordpress-wp-content-mount.service.j2",
+    "50.Diplom/ansible/templates/wordpress/wordpress-wp-content-mount.sh.j2",
+    "50.Diplom/docs/ansible/front.md",
+    "50.Diplom/docs/ansible/ha_shared.md",
+    "50.Diplom/docs/ansible/alloy.md",
+    "30.iptables/README.md"
   ]
 }

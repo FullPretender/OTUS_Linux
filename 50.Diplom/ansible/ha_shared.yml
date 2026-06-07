@@ -11,7 +11,6 @@
         shell: /usr/sbin/nologin
         create_home: no
 
-    # Re-provision: UFW уже включён с прошлого прогона; полный набор правил — в UFW.yml в конце site.yml
     - name: Разрешение DB endpoint и NFS до монтирования backend-узлами
       ansible.builtin.command: "ufw allow from 10.10.10.0/24 to any port {{ item }} proto tcp"
       loop:

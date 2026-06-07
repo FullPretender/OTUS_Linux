@@ -4,7 +4,6 @@ Vagrant.configure("2") do |config|
   config.ssh.insert_key = false
   config.ssh.private_key_path = ["~/.vagrant.d/insecure_private_key"]
   
-  # Глобальные настройки VirtualBox
   config.vm.provider "virtualbox" do |vb|
     vb.gui = false
     vb.memory = 2048
@@ -13,7 +12,6 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
   end
 
-  # Имя изолированной внутренней сети для сервисного трафика
   INTERNAL_NET = "diplom_lab_internal"
 
   # ==========================================
@@ -22,14 +20,10 @@ Vagrant.configure("2") do |config|
   config.vm.define "frontend" do |frontend|
     frontend.vm.hostname = "frontend.local"
     
-    # Интерфейс 1: Управление (Host-Only, доступен хосту для Ansible)
     frontend.vm.network "private_network", ip: "192.168.56.10"
     
-    # Интерфейс 2: Сервисный (Internal, только для связи с бэкендом)
-    # Примечание: Nginx будет слушать на всех интерфейсах или явно на eth1/eth2
     frontend.vm.network "private_network", ip: "10.10.10.10", virtualbox__intnet: INTERNAL_NET, auto_config: true
 
-    # SSH остаётся административным каналом; HTTP/HTTPS доступны по host-only IP 192.168.56.10.
     frontend.vm.network "forwarded_port", guest: 22,  host: 2201, id: "ssh"
 
     frontend.vm.provider "virtualbox" do |vb|
@@ -45,9 +39,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "backend-1" do |backend1|
     backend1.vm.hostname = "backend-1.local"
     
-    # Интерфейс 1: Управление
     backend1.vm.network "private_network", ip: "192.168.56.20"
-    # Интерфейс 2: Сервисный
     backend1.vm.network "private_network", ip: "10.10.10.20", virtualbox__intnet: INTERNAL_NET, auto_config: true
 
     backend1.vm.network "forwarded_port", guest: 22, host: 2202, id: "ssh"
@@ -65,9 +57,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "backend-2" do |backend2|
     backend2.vm.hostname = "backend-2.local"
     
-    # Интерфейс 1: Управление
     backend2.vm.network "private_network", ip: "192.168.56.21"
-    # Интерфейс 2: Сервисный
     backend2.vm.network "private_network", ip: "10.10.10.21", virtualbox__intnet: INTERNAL_NET, auto_config: true
 
     backend2.vm.network "forwarded_port", guest: 22, host: 2203, id: "ssh"
@@ -86,9 +76,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "monitoring" do |monitoring|
     monitoring.vm.hostname = "monitoring.local"
     
-    # Интерфейс 1: Управление
     monitoring.vm.network "private_network", ip: "192.168.56.30"
-    # Интерфейс 2: Сервисный
     monitoring.vm.network "private_network", ip: "10.10.10.30", virtualbox__intnet: INTERNAL_NET, auto_config: true
 
     monitoring.vm.network "forwarded_port", guest: 22,   host: 2204, id: "ssh"
@@ -106,9 +94,7 @@ Vagrant.configure("2") do |config|
   config.vm.define "logging" do |logging|
     logging.vm.hostname = "logging.local"
     
-    # Интерфейс 1: Управление
     logging.vm.network "private_network", ip: "192.168.56.40"
-    # Интерфейс 2: Сервисный
     logging.vm.network "private_network", ip: "10.10.10.40", virtualbox__intnet: INTERNAL_NET, auto_config: true
 
     logging.vm.network "forwarded_port", guest: 22,   host: 2205, id: "ssh"
@@ -119,7 +105,6 @@ Vagrant.configure("2") do |config|
       vb.cpus = 2
     end
 
-    # Общий provision запускается на последней VM, когда все узлы уже созданы.
     logging.vm.provision "ansible" do |ansible|
       ansible.playbook = "ansible/site.yml"
       ansible.inventory_path = "ansible/hosts.ini"

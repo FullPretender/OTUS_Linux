@@ -11,32 +11,83 @@
 ## Общая схема
 
 ```mermaid
-flowchart TD
-  user[User Browser] --> frontend["frontend: Nginx HTTPS Load Balancer"]
-  frontend --> backend1["backend-1: WordPress, PHP-FPM, Nginx, MySQL master"]
-  frontend --> backend2["backend-2: WordPress, PHP-FPM, Nginx, MySQL slave"]
+flowchart TB
+  user(["Пользователь"])
 
-  backend1 --> dbEndpoint["logging: HAProxy MySQL endpoint 10.10.10.40:6033"]
-  backend2 --> dbEndpoint
-  dbEndpoint --> mysqlMaster["backend-1: MySQL master 10.10.10.20:3306"]
-  dbEndpoint --> mysqlSlave["backend-2: MySQL backup writer 10.10.10.21:3306"]
-  mysqlMaster --> mysqlSlave
+  subgraph NET["Сервисная сеть 10.10.10.0/24"]
+    direction TB
 
-  backend1 --> nfs["logging: NFS wp-content /srv/wordpress/wp-content"]
-  backend2 --> nfs
+    subgraph FE["frontend · 10.10.10.10"]
+      direction TB
+      fe_nginx["Nginx — HTTPS, load balancer"]
+      fe_restic["Restic client"]
+    end
 
-  frontend --> restic["logging: Rest Server /srv/restic"]
-  backend1 --> restic
-  backend2 --> restic
+    subgraph B1["backend-1 · 10.10.10.20"]
+      direction TB
+      b1_app["Nginx · PHP-FPM · WordPress"]
+      b1_mysql[("MySQL master")]
+      b1_restic["Restic client"]
+    end
 
-  allNodes["All nodes"] --> nodeExporter["Node Exporter"]
-  nodeExporter --> monitoring["monitoring: Prometheus, Grafana, Alertmanager"]
-  allNodes --> alloy["Grafana Alloy"]
-  alloy --> loki["logging: Loki"]
-  monitoring --> loki
+    subgraph B2["backend-2 · 10.10.10.21"]
+      direction TB
+      b2_app["Nginx · PHP-FPM · WordPress"]
+      b2_mysql[("MySQL slave")]
+      b2_restic["Restic client"]
+    end
+
+    subgraph LOG["logging · 10.10.10.40"]
+      direction TB
+      log_ha["HAProxy :6033 — DB endpoint"]
+      log_nfs["NFS — wp-content"]
+      log_rest["Rest Server — Restic repos"]
+      log_loki["Loki"]
+    end
+
+    subgraph MON["monitoring · 10.10.10.30"]
+      direction TB
+      mon_prom["Prometheus"]
+      mon_graf["Grafana"]
+      mon_alert["Alertmanager"]
+    end
+  end
+
+  obs["Node Exporter + Alloy<br/>(на каждой VM)"]
+
+  user -->|"HTTPS lab.diplom.com"| fe_nginx
+
+  fe_nginx -->|"HTTP least_conn"| b1_app
+  fe_nginx -->|"HTTP least_conn"| b2_app
+  fe_nginx -->|"/grafana · /prometheus · /alertmanager"| mon_graf
+
+  b1_app -->|"SQL"| log_ha
+  b2_app -->|"SQL"| log_ha
+  log_ha -->|"primary"| b1_mysql
+  log_ha -.->|"failover"| b2_mysql
+  b1_mysql -->|"репликация"| b2_mysql
+
+  b1_app <-->|"NFS"| log_nfs
+  b2_app <-->|"NFS"| log_nfs
+
+  fe_restic -->|"backup"| log_rest
+  b1_restic -->|"backup"| log_rest
+  b2_restic -->|"backup"| log_rest
+
+  fe_nginx -.-> obs
+  b1_app -.-> obs
+  b2_app -.-> obs
+  mon_graf -.-> obs
+  log_loki -.-> obs
+  obs -.->|"метрики :9100"| mon_prom
+  obs -.->|"логи"| log_loki
+  mon_graf -->|"datasources"| mon_prom
+  mon_graf --> log_loki
 ```
 
-Главная идея текущей версии: `monitoring` больше не является runtime-зависимостью WordPress. Критичное общее состояние вынесено на `logging`: HAProxy для БД, NFS для `wp-content`, Rest Server и Restic repositories.
+На каждой VM дополнительно работают **Node Exporter** и **Grafana Alloy** — они не участвуют в пользовательском трафике, но собирают метрики и логи со всех узлов.
+
+Главная идея: `monitoring` не является runtime-зависимостью WordPress. Критичное общее состояние сосредоточено на `logging` — HAProxy для БД, NFS для `wp-content`, Rest Server и Restic-репозитории. Backend-узлы ведут себя как web workers: приложение локально, данные — через `logging`.
 
 ## Виртуальные машины
 
@@ -294,7 +345,6 @@ Playbook-и **не скачивают** бинарники из интернет
 - разворачивает `alloy.service`;
 - даёт Alloy право читать PHP-FPM логи;
 - даёт Alloy право читать Grafana логи;
-- останавливает и отключает старый `promtail.service`, если он был установлен ранее;
 - запускает `alloy.service`.
 
 ### `ansible/restic_init.yml`

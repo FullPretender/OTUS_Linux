@@ -13,5 +13,4 @@ restic backup \
   /etc/ssl/private/lab.key \
   >> /var/log/restic_backup_frontend.log 2>&1
 
-# Очистка старых снапшотов по политике ТЗ
 restic forget --repo "$RESTIC_REPO" --keep-hourly 24 --keep-daily 7 --keep-weekly 4 --prune

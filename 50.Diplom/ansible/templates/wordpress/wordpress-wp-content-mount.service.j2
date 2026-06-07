@@ -1,0 +1,13 @@
+[Unit]
+Description=Mount shared WordPress wp-content over NFS
+After=network-online.target
+Wants=network-online.target
+Before=nginx.service php8.1-fpm.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/wordpress-wp-content-mount.sh
+
+[Install]
+WantedBy=multi-user.target

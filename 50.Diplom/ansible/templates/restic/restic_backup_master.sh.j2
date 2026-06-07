@@ -6,10 +6,8 @@ DUMP_DIR="/tmp/mysql_backups"
 DATE=$(date +%F_%T)
 mkdir -p "$DUMP_DIR"
 
-# 1. Дамп БД (используем .my.cnf для безопасной авторизации)
 mysqldump --defaults-file=/root/.my.cnf --single-transaction {{ db_wp_name }} > "$DUMP_DIR/wp_db_${DATE}.sql"
 
-# 2. Инкрементальный бэкап Restic
 restic backup --repo "$RESTIC_REPO" --tag backend_master --exclude-caches \
   "$DUMP_DIR" \
   "/var/www/wordpress" \
@@ -19,8 +17,6 @@ restic backup --repo "$RESTIC_REPO" --tag backend_master --exclude-caches \
   /etc/nginx \
   >> /var/log/restic_backup_master.log 2>&1
 
-# 3. Ротация снапшотов
 restic forget --repo "$RESTIC_REPO" --keep-hourly 24 --keep-daily 7 --keep-weekly 4 --prune
 
-# 4. Очистка старых локальных дампов
 find "$DUMP_DIR" -type f -name "*.sql" -mtime +1 -delete

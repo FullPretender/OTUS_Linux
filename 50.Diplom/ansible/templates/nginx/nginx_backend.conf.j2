@@ -1,6 +1,4 @@
 server {
-    # listen на всех интерфейсах: bind только на 10.10.10.x падает (EADDRNOTAVAILABLE),
-    # если internal-сеть VirtualBox ещё не поднята при старте nginx
     listen 80;
     server_name _;
     root /var/www/wordpress;

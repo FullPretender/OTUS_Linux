@@ -6,10 +6,8 @@ DUMP_DIR="/tmp/mysql_backups"
 DATE=$(date +%F_%T)
 mkdir -p "$DUMP_DIR"
 
-# Дамп БД с Slave (без блокировки Master)
 mysqldump --defaults-file=/root/.my.cnf --single-transaction {{ db_wp_name }} > "$DUMP_DIR/wp_db_slave_${DATE}.sql"
 
-# Инкрементальный бэкап Restic
 restic backup --repo "$RESTIC_REPO" --tag backend_slave --exclude-caches \
   "$DUMP_DIR" \
   "/var/www/wordpress/wp-content" \
@@ -19,8 +17,6 @@ restic backup --repo "$RESTIC_REPO" --tag backend_slave --exclude-caches \
   /etc/nginx \
   >> /var/log/restic_backup_slave.log 2>&1
 
-# Ротация снапшотов
 restic forget --repo "$RESTIC_REPO" --keep-hourly 24 --keep-daily 7 --keep-weekly 4 --prune
 
-# Очистка старых локальных дампов
 find "$DUMP_DIR" -type f -name "*.sql" -mtime +1 -delete

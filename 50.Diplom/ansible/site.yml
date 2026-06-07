@@ -1,5 +1,4 @@
 ---
-# Импорт плейбуков настройки отдельных хостов
 - import_playbook: ha_shared.yml
 - import_playbook: back.yml
 - import_playbook: front.yml

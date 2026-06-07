@@ -1,0 +1,36 @@
+Демонстрация балансировки
+vagrant ssh backend-1 -c "sudo tail -f /var/log/nginx/access.log"
+vagrant ssh backend-2 -c "sudo tail -f /var/log/nginx/access.log"
+curl -k https://lab.diplom.com/ >/dev/null
+
+
+
+Проверка работы репликации 
+
+Статус репликации
+vagrant ssh backend-2 -c "sudo mysql --defaults-file=/root/.my.cnf -e 'SHOW SLAVE STATUS\\G' | egrep 'Slave_IO_Running|Slave_SQL_Running|Seconds_Behind_Master'"
+
+Маркер доставки данных
+vagrant ssh backend-2 -c "sudo mysql --defaults-file=/root/.my.cnf -NBe 'SELECT marker FROM wordpress_db.wp_ha_check WHERE id=1'"
+
+Синхронность данных
+vagrant ssh backend-1 -c "sudo mysql --defaults-file=/root/.my.cnf -NBe 'SELECT COUNT(*) FROM wordpress_db.wp_posts'"
+vagrant ssh backend-2 -c "sudo mysql --defaults-file=/root/.my.cnf -NBe 'SELECT COUNT(*) FROM wordpress_db.wp_posts'"
+
+
+
+Посмотреть каталоги бекапов
+vagrant ssh logging -c "sudo du -sh /srv/restic/*"
+
+Посмотреть снапшоты
+vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_backend_master.sh | head -1); restic -r \"\$RESTIC_REPO\" snapshots'"
+
+Дамп БД (локально)
+vagrant ssh backend-1 -c "sudo ls -lh /tmp/mysql_backups/"
+
+Дампы БД (в снапшоте)
+vagrant ssh backend-1 -c "sudo RESTIC_PASSWORD_FILE=/etc/restic_password bash -c 'eval \$(grep ^RESTIC_REPO= /usr/local/bin/restic_backup_backend_master.sh | head -1); restic -r \"\$RESTIC_REPO\" ls latest' | egrep '/tmp/mysql_backups|wp_db_.*\\.sql'"
+
+Сделать бекап
+vagrant ssh backend-1 -c "sudo systemctl start restic-backup-backend_master.service"
+vagrant ssh backend-1 -c "sudo tail -n 20 /var/log/restic_backup_master.log"

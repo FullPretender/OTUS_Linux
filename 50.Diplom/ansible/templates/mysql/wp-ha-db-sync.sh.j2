@@ -1,5 +1,4 @@
 #!/bin/bash
-# Автовыравнивание БД WordPress между Master и Slave (запускается по timer на Master)
 set -euo pipefail
 
 MASTER_IP="10.10.10.20"
@@ -17,7 +16,6 @@ fi
 
 log() { echo "$(date -Is) $*" >> "$LOG"; }
 
-# Slave недоступен — ничего не делаем (идёт работа только на Master)
 if ! ping -c1 -W2 "$SLAVE_IP" &>/dev/null; then
   exit 0
 fi

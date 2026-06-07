@@ -181,7 +181,7 @@ Playbook настраивает backend-слой WordPress:
 
 ### `ansible.posix.mount`
 
-Управляет mountpoint'ами и `/etc/fstab`. Здесь монтирует общий `wp-content` по NFSv4 и обеспечивает его состояние `mounted`.
+Управляет mountpoint'ами и `/etc/fstab`. Здесь монтирует общий `wp-content` по NFSv4 (`noauto,_netdev` в fstab). При загрузке VM mount выполняет `wordpress-wp-content-mount.service` с повторами, пока на `logging` не поднимется NFS; nginx и PHP-FPM зависят от этого unit.
 
 ### `ansible.builtin.wait_for`
 
@@ -199,6 +199,8 @@ Playbook настраивает backend-слой WordPress:
 
 - `ansible/templates/mysql/mysql_master.cnf.j2`
 - `ansible/templates/mysql/mysql_slave.cnf.j2`
+- `ansible/templates/wordpress/wordpress-wp-content-mount.sh.j2`
+- `ansible/templates/wordpress/wordpress-wp-content-mount.service.j2`
 - `ansible/templates/mysql/wp-ha-db-sync.sh.j2`
 - `ansible/templates/mysql/wp-ha-db-sync.service.j2`
 - `ansible/templates/mysql/wp-ha-db-sync.timer.j2`

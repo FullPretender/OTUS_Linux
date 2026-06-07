@@ -1,0 +1,27 @@
+#!/bin/bash
+set -euo pipefail
+
+MOUNT="/var/www/wordpress/wp-content"
+MARKER="${MOUNT}/themes/demo-forum-theme/style.css"
+
+wp_content_ok() {
+  mountpoint -q "${MOUNT}" && test -f "${MARKER}"
+}
+
+if mountpoint -q "${MOUNT}" && ! test -f "${MARKER}"; then
+  umount -fl "${MOUNT}" 2>/dev/null || true
+fi
+
+for _ in $(seq 1 36); do
+  if wp_content_ok; then
+    exit 0
+  fi
+  if mountpoint -q "${MOUNT}"; then
+    umount -fl "${MOUNT}" 2>/dev/null || true
+  fi
+  mount "${MOUNT}" 2>/dev/null || true
+  sleep 5
+done
+
+echo "wp-content NFS mount failed: ${MARKER} not found" >&2
+exit 1
